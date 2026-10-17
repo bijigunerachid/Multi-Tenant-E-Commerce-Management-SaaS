@@ -1,0 +1,50 @@
+import { loadEnv } from '../../src/config/env.js';
+import { createLogger } from '../../src/config/logger.js';
+import { createPrismaClient } from '../../src/config/database.js';
+import { createRedisClient } from '../../src/config/redis.js';
+import { createMailer } from '../../src/services/mailer.js';
+import { createLocalStorage } from '../../src/services/storage.js';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { createApp } from '../../src/app.js';
+
+/** Builds the real app against the test database and Redis. Call `close()` in afterAll. */
+export async function createTestApp(overrides = {}) {
+  const env = loadEnv();
+  const logger = createLogger({ level: env.LOG_LEVEL });
+  const prisma = overrides.prisma ?? createPrismaClient({ databaseUrl: env.DATABASE_URL });
+  const redis = overrides.redis ?? createRedisClient({ redisUrl: env.REDIS_URL, logger });
+  const mailer = createMailer({ env, logger });
+  // Each test file gets its own throwaway upload directory.
+  const uploadDir = mkdtempSync(path.join(tmpdir(), 'vendora-uploads-'));
+  const storage = createLocalStorage({ rootDir: uploadDir });
+  // Connect up front, as server.js does, so the first request does not pay the connection cost.
+  await Promise.all([
+    overrides.prisma ? null : prisma.$connect(),
+    overrides.redis ? null : redis.connect(),
+  ]);
+
+  const app = createApp({ env, logger, prisma, redis, mailer, storage });
+  const close = async () => {
+    rmSync(uploadDir, { recursive: true, force: true });
+    await Promise.allSettled([
+      overrides.prisma ? null : prisma.$disconnect(),
+      overrides.redis ? null : redis.quit(),
+    ]);
+  };
+  return { app, prisma, redis, mailer, storage, uploadDir, env, close };
+}
+
+/** Empties every application table and the test Redis database. */
+export async function resetState({ prisma, redis, mailer }) {
+  const tables = await prisma.$queryRaw`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+  if (tables.length) {
+    const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
+    await prisma.$executeRawUnsafe(`TRUNCATE ${list} RESTART IDENTITY CASCADE`);
+  }
+  await redis.flushdb();
+  if (mailer) mailer.sent.length = 0;
+}

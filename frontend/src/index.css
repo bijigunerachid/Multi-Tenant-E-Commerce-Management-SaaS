@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Browsers give <fieldset> min-inline-size: min-content, so a wide table inside one stretches
+     the whole page on small screens instead of scrolling in its own container. */
+  fieldset {
+    min-width: 0;
+  }
+}
