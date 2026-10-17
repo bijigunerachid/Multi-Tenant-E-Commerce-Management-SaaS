@@ -22,7 +22,16 @@ const AXIS_TEXT = '#64748b';
 
 const shortDate = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 const longDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+const monthName = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+const shortMonth = new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' });
 const parseDay = (d) => new Date(`${d}T00:00:00`);
+
+/** Label of the period starting on `day` (YYYY-MM-DD), grouped by day, week or month. */
+function periodLabel(day, bucket) {
+  if (bucket === 'month') return monthName.format(parseDay(day));
+  if (bucket === 'week') return `Week of ${longDate.format(parseDay(day))}`;
+  return longDate.format(parseDay(day));
+}
 
 function compactMoney(value, currency) {
   return new Intl.NumberFormat(undefined, {
@@ -61,11 +70,7 @@ function TrendTooltip({ active, payload, currency, bucket }) {
   const point = payload[0].payload;
   return (
     <div className="rounded-md bg-white px-3 py-2 text-sm shadow-lg ring-1 ring-slate-200">
-      <p className="text-slate-600">
-        {bucket === 'week'
-          ? `Week of ${longDate.format(parseDay(point.period))}`
-          : longDate.format(parseDay(point.period))}
-      </p>
+      <p className="text-slate-600">{periodLabel(point.period, bucket)}</p>
       <p className="font-semibold tabular-nums text-slate-900">
         {formatMoney(point.revenue, currency)}
       </p>
@@ -76,11 +81,11 @@ function TrendTooltip({ active, payload, currency, bucket }) {
   );
 }
 
-export function RevenueChart({ points, currency, bucket }) {
+export function RevenueChart({ points, currency, bucket, showTable = true }) {
   const data = points.map((p) => ({ ...p, value: Number(p.revenue) }));
   const total = data.reduce((s, p) => s + p.value, 0);
   const gradientId = useId().replace(/:/g, '');
-  const summary = `Revenue by ${bucket}, ${points.length} ${bucket === 'week' ? 'weeks' : 'days'}, total ${formatMoney(total.toFixed(2), currency)}.`;
+  const summary = `Revenue by ${bucket}, ${points.length} ${bucket}s, total ${formatMoney(total.toFixed(2), currency)}.`;
 
   return (
     <div>
@@ -96,7 +101,9 @@ export function RevenueChart({ points, currency, bucket }) {
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis
               dataKey="period"
-              tickFormatter={(d) => shortDate.format(parseDay(d))}
+              tickFormatter={(d) =>
+                (bucket === 'month' ? shortMonth : shortDate).format(parseDay(d))
+              }
               tick={{ fill: AXIS_TEXT, fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: GRID }}
@@ -126,34 +133,36 @@ export function RevenueChart({ points, currency, bucket }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <TableToggle label="revenue">
-        <table className="min-w-full text-sm">
-          <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th scope="col" className="px-3 py-2">
-                {bucket === 'week' ? 'Week of' : 'Day'}
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Orders shipped
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Revenue
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {points.map((p) => (
-              <tr key={p.period}>
-                <td className="px-3 py-1.5">{longDate.format(parseDay(p.period))}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">{p.orders}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">
-                  {formatMoney(p.revenue, currency)}
-                </td>
+      {showTable && (
+        <TableToggle label="revenue">
+          <table className="min-w-full text-sm">
+            <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th scope="col" className="px-3 py-2">
+                  Period
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Orders shipped
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Revenue
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </TableToggle>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {points.map((p) => (
+                <tr key={p.period}>
+                  <td className="px-3 py-1.5">{periodLabel(p.period, bucket)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{p.orders}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">
+                    {formatMoney(p.revenue, currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableToggle>
+      )}
     </div>
   );
 }

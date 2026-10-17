@@ -1,4 +1,5 @@
 import { apiClient, unwrap } from '../lib/apiClient.js';
+import { downloadFile } from '../lib/download.js';
 
 /** Returns { data, meta } (paginated). */
 export const listCustomers = (params) =>
@@ -17,33 +18,6 @@ export const updateAddress = (customerId, addressId, body) =>
 export const deleteAddress = (customerId, addressId) =>
   apiClient.delete(`/customers/${customerId}/addresses/${addressId}`);
 
-/**
- * Downloads the CSV export. Fetched through the API client (not a plain link) so errors such
- * as rate limits arrive as JSON and can be shown to the user instead of saved as a file.
- */
-export async function downloadCustomerExport(params) {
-  let res;
-  try {
-    res = await apiClient.get('/customers/export', { params, responseType: 'blob' });
-  } catch (error) {
-    // With responseType blob, an error body is a Blob too: turn it back into JSON.
-    const blob = error.response?.data;
-    if (blob instanceof Blob) {
-      try {
-        error.response.data = JSON.parse(await blob.text());
-      } catch {
-        // leave as is
-      }
-    }
-    throw error;
-  }
-  const name =
-    /filename="([^"]+)"/.exec(res.headers['content-disposition'] ?? '')?.[1] ?? 'customers.csv';
-  const url = URL.createObjectURL(res.data);
-  const link = Object.assign(document.createElement('a'), { href: url, download: name });
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  return name;
-}
+/** Saves the CSV export of the customers matching the filters; resolves to the file name. */
+export const downloadCustomerExport = (params) =>
+  downloadFile('/customers/export', params, 'customers.csv');

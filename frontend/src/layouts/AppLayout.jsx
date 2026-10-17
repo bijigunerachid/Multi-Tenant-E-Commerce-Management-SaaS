@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import {
   ArchiveBoxIcon,
   Bars3Icon,
+  ChartBarIcon,
   BuildingOfficeIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -39,6 +40,7 @@ const NAV = [
   { to: '/inventory', label: 'Inventory', icon: ArchiveBoxIcon, permission: 'inventory:read' },
   { to: '/orders', label: 'Orders', icon: ShoppingBagIcon, permission: 'order:read' },
   { to: '/customers', label: 'Customers', icon: UserGroupIcon, permission: 'customer:read' },
+  { to: '/reports', label: 'Reports', icon: ChartBarIcon, permission: 'report:read' },
   { to: '/employees', label: 'Employees', icon: UsersIcon, permission: 'member:read' },
   { to: '/settings/organization', label: 'Organization', icon: BuildingOfficeIcon },
   { to: '/settings/profile', label: 'Your profile', icon: UserCircleIcon },

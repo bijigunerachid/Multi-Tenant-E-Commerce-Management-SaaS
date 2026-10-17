@@ -56,6 +56,7 @@ const CustomerDetailPage = page(
 );
 const OrdersPage = page(() => import('../features/orders/OrdersPage.jsx'), 'OrdersPage');
 const OrderFormPage = page(() => import('../features/orders/OrderFormPage.jsx'), 'OrderFormPage');
+const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
   'OrderDetailPage',
@@ -177,6 +178,12 @@ export const routes = [
                           },
                         ],
                       },
+                    ],
+                  },
+                  {
+                    element: <RequirePermission permission="report:read" />,
+                    children: [
+                      { path: 'reports', lazy: ReportsPage, handle: { crumb: 'Reports' } },
                     ],
                   },
                   {

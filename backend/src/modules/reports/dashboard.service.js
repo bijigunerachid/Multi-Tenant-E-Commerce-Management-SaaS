@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { formatMoney } from '../../utils/money.js';
+import { NET, SHIPPED, addDays, bounds, daysBetween, resolveRange } from './period.js';
 
-// Dashboard metrics. Definitions (also in docs/architecture.md, "Business metrics"):
+// Dashboard metrics. Definitions (also in docs/architecture.md, "Dashboard metrics"):
 //
 //   Revenue        Net sales (subtotal − discount; excludes tax and shipping) of orders SHIPPED
 //                  in the period, by ship date. Shipped and delivered orders count; drafts,
@@ -14,28 +15,8 @@ import { formatMoney } from '../../utils/money.js';
 // default currency; orders in any other currency are counted separately, never added in.
 // Raw SQL is not scoped by tenantDb, so every query filters organization_id itself.
 
-const SHIPPED = Prisma.sql`o.status IN ('SHIPPED', 'DELIVERED')`;
-const NET = Prisma.sql`o.subtotal - o.discount_total`;
 const CACHE_TTL_SECONDS = 60;
 const WEEKLY_AFTER_DAYS = 92;
-
-const DAY_MS = 86_400_000;
-const toDate = (s) => new Date(`${s}T00:00:00.000Z`);
-const isoDate = (d) => d.toISOString().slice(0, 10);
-const addDays = (s, n) => isoDate(new Date(toDate(s).getTime() + n * DAY_MS));
-const daysBetween = (from, to) => Math.round((toDate(to) - toDate(from)) / DAY_MS) + 1;
-
-/**
- * The last N days (default 30), today included, where "today" is decided by PostgreSQL.
- * All period maths runs in the database, so "today" must come from the same time zone data:
- * Node (ICU) and PostgreSQL can ship different tzdata versions, and they do disagree on some
- * zones (for example Africa/Casablanca from 2026-09-20).
- */
-async function lastDays(db, timezone, days = 30) {
-  const [{ today }] = await db.$queryRaw`
-    SELECT to_char((now() AT TIME ZONE ${timezone})::date, 'YYYY-MM-DD') AS today`;
-  return { from: addDays(today, -(days - 1)), to: today };
-}
 
 function percentChange(current, previous) {
   if (previous.isZero()) return current.isZero() ? 0 : null; // null: no basis for comparison
@@ -43,12 +24,6 @@ function percentChange(current, previous) {
 }
 
 export function createDashboardService({ redis }) {
-  /** Timestamps bounding [from, to] (whole days, inclusive) in the organization's time zone. */
-  const bounds = (from, to, tz) => ({
-    start: Prisma.sql`(${from}::date)::timestamp AT TIME ZONE ${tz}`,
-    end: Prisma.sql`(${addDays(to, 1)}::date)::timestamp AT TIME ZONE ${tz}`,
-  });
-
   async function salesTotals(db, org, currency, from, to, tz) {
     const { start, end } = bounds(from, to, tz);
     const [row] = await db.$queryRaw`
@@ -213,7 +188,7 @@ export function createDashboardService({ redis }) {
      */
     async dashboard(req, { from, to, days }) {
       const org = await req.db.organization.findFirstOrThrow();
-      const range = from && to ? { from, to } : await lastDays(req.db, org.timezone, days);
+      const range = await resolveRange(req.db, org.timezone, { from, to, days });
       const [{ version }] = await req.db.$queryRaw`
         SELECT concat_ws(':',
           (SELECT extract(epoch FROM max(updated_at)) FROM orders WHERE organization_id = ${org.id}::uuid),
