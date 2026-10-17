@@ -53,8 +53,9 @@ export default defineConfig({
         APP_URL: WEB_URL,
         MAIL_TRANSPORT: 'smtp',
         SMTP_URL: process.env.E2E_SMTP_URL ?? 'smtp://127.0.0.1:1025',
-        // Emails go through the real queue; the API process runs the worker.
-        EMAIL_WORKER: 'in-process',
+        // Emails and notifications go through the real queues; the API process runs the worker.
+        JOB_WORKER: 'in-process',
+        NOTIFICATION_POLL_MS: '300',
         // The suite signs up more users from one address than the production limits allow.
         RATE_LIMIT_SCALE: '20',
       },

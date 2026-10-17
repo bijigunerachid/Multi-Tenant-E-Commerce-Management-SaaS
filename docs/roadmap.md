@@ -217,7 +217,11 @@ Steps, one branch each:
 2. Reports with date ranges and CSV exports (`feature/reports`): sales by day, week or
    month, sales by product variant, sales by store, a store filter, CSV export. ✅
 3. BullMQ worker and email delivery with retries and history (`feature/background-jobs`). ✅
-4. Low-stock and new-order notifications and a notification center (`feature/notifications`).
+4. Low-stock and new-order notifications and a notification center (`feature/notifications`). ✅
+
+Not done in Phase 5: CSV exports as background jobs. Exports still run during the request,
+capped at 100,000 rows. Moving them to a job with a download link is a follow-up for when
+exports outgrow that cap.
 
 Step 1 (dashboard) verification:
 
@@ -296,6 +300,46 @@ Step 3 (background jobs) verification:
 - E2E: all 13 Playwright tests send their emails through the queue to Mailpit, and
   `emails.spec.js` checks the invitation in the inbox and in the Email log. The standalone
   worker process (`npm run worker`) was also tested by hand against the dev API and Mailpit.
+
+Step 4 (notifications) verification:
+
+- Design in [architecture.md](architecture.md#9-notifications): an outbox row written in the
+  business transaction, delivered by the worker to each member whose role handles it, with
+  opt-in email copies.
+- Backend: 20 notification tests:
+  - who receives new orders (not the person who placed it) and low stock (including whoever
+    caused it);
+  - the threshold crossing and running out, with no repeat while stock stays low, an alert
+    again after restocking, reservations counting and shipping not alerting twice;
+  - a refused order leaving no event behind; archived products; deactivated members and
+    disabled users;
+  - read, read-all, unread counts, another member's notification (404), a role change hiding
+    old notifications, another organization;
+  - email preferences (off by default, per type, verified addresses only, refused for types
+    the role does not receive);
+  - a broken event retried 5 times without blocking the others; an event without ids refused;
+    three dispatchers at once delivering each event once; retention cleanup;
+  - the polling worker delivering on its own after Redis was emptied.
+- The isolation suite has a fixture for `notificationId` and checks the lists. Backend: 221
+  tests.
+- Sabotage checks, each caught: alerting on every change instead of crossings; notifying the
+  person who placed the order; no role filter on reads; no per-member filter; no row lock when
+  claiming events; email copies to unverified addresses.
+- Frontend: 9 tests (bell count and its 99+ cap, the panel in words, opening one marks it read
+  and follows its link, mark all, the unread filter in the URL, email settings and their
+  rollback when a save fails, roles that receive nothing). 105 in total.
+- E2E: `notifications.spec.js` turns on low-stock email, places an order that leaves 4 of 6
+  units, then checks the bell, follows the alert to the filtered inventory page and finds the
+  email in Mailpit. The notifications page is in the phone-width check. 14 Playwright tests.
+- Bugs found along the way:
+  - The first version scheduled delivery with a BullMQ job scheduler. The E2E setup empties
+    Redis after the API has started, which deleted the scheduler: events piled up and nothing
+    was delivered, with no error. Delivery now polls PostgreSQL, and a test empties Redis to
+    prove it keeps working.
+  - Ticking an email setting looked like it did nothing until the server answered: the cache
+    update reached the screen a tick after React had put the checkbox back. The clicked value
+    is now kept in component state, so the box changes at once and goes back if the save
+    fails.
 
 ## Phase 6: Billing and production readiness
 

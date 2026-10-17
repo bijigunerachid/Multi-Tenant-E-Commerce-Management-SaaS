@@ -74,6 +74,13 @@ beforeEach(async () => {
   expect(placed.status).toBe(200);
   foreign.orderId = order.body.data.id;
   foreign.addressId = customer.body.data.addresses[0].id;
+  // Placing the order notified B's manager and order manager.
+  await ctx.notifications.dispatchPending();
+  foreign.notificationId = (
+    await ctx.prisma.notification.findFirstOrThrow({
+      where: { organizationId: B.organization.id },
+    })
+  ).id;
 });
 
 // Valid bodies, so a request is refused because of the foreign id and not because of the input.
@@ -119,6 +126,7 @@ async function snapshotB() {
       ...byId,
       include: { items: { ...byId, include: { reservation: true } }, history: byId },
     }),
+    notifications: await ctx.prisma.notification.findMany({ where, ...byId }),
   };
   return JSON.stringify(snapshot);
 }
@@ -171,6 +179,10 @@ test("list endpoints return only the caller's organization data", async () => {
   ).map((r) => r.id);
   expect(bAuditIds.length).toBeGreaterThan(0);
   for (const row of audit.body.data) expect(bAuditIds).not.toContain(row.id);
+
+  const notifications = await client.get('/notifications');
+  expect(notifications.body.meta).toMatchObject({ total: 0, unreadCount: 0 });
+  expect((await client.get('/notifications/unread-count')).body.data.count).toBe(0);
 });
 
 test('an ID from another organization in a request body is rejected', async () => {

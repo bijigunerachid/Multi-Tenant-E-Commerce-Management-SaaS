@@ -60,6 +60,10 @@ const EmailDeliveriesPage = page(
   () => import('../features/emails/EmailDeliveriesPage.jsx'),
   'EmailDeliveriesPage',
 );
+const NotificationsPage = page(
+  () => import('../features/notifications/NotificationsPage.jsx'),
+  'NotificationsPage',
+);
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -210,6 +214,11 @@ export const routes = [
                         handle: { crumb: 'Email log' },
                       },
                     ],
+                  },
+                  {
+                    path: 'notifications',
+                    lazy: NotificationsPage,
+                    handle: { crumb: 'Notifications' },
                   },
                   {
                     path: 'settings/profile',

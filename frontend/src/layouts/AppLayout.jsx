@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useMatches, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import {
@@ -21,6 +21,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckIcon, PlusIcon } from '@heroicons/react/20/solid';
 import { Logo } from './AuthLayout.jsx';
+import { useDismiss } from '../hooks/useDismiss.js';
+import { NotificationBell } from '../features/notifications/NotificationBell.jsx';
 import { useApplySession, useSession } from '../features/auth/useSession.js';
 import { logout } from '../services/authService.js';
 import { switchOrganization } from '../services/organizationService.js';
@@ -47,22 +49,6 @@ const NAV = [
   { to: '/settings/emails', label: 'Email log', icon: EnvelopeIcon, permission: 'audit:read' },
   { to: '/settings/profile', label: 'Your profile', icon: UserCircleIcon },
 ];
-
-function useDismiss(open, setOpen) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointer = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
-    const onKey = (e) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, setOpen]);
-  return ref;
-}
 
 function SidebarNav({ collapsed, permissions, onNavigate }) {
   return (
@@ -227,6 +213,14 @@ function UserMenu({ user }) {
           >
             Your profile
           </Link>
+          <Link
+            role="menuitem"
+            to="/notifications"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Notifications
+          </Link>
           <button
             role="menuitem"
             type="button"
@@ -378,7 +372,8 @@ export function AppLayout() {
             <span className="sr-only">Open menu</span>
           </button>
           <OrganizationSwitcher session={session} />
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <NotificationBell organizationId={session.activeOrganization.id} />
             <UserMenu user={session.user} />
           </div>
         </header>

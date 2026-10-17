@@ -29,6 +29,8 @@ export const TENANT_MODELS = new Set([
   'InventoryReservation',
   'OrganizationCounter',
   'EmailDelivery',
+  'NotificationEvent',
+  'Notification',
 ]);
 
 const WHERE_OPERATIONS = new Set([
