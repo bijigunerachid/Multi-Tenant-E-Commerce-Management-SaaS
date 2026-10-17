@@ -156,7 +156,34 @@ and the previous period of the same length. The definitions live next to the que
   fingerprint (the latest `updated_at` of orders, inventory, products, variants and stores),
   so a user who ships an order sees it on their next load instead of waiting for the TTL.
 
-## 7. Trust boundaries
+## 7. Reports
+
+`GET /reports/{sales,products,stores}` (`report:read`) and `GET /reports/{report}/export`
+(`report:export`, CSV) take the same range as the dashboard and use the same definitions: a
+sale is a shipped or delivered order, dated by its ship date in the organization's time
+zone, in the default currency. The shared definitions live in `modules/reports/period.js`.
+
+| Report   | One row per                    | Columns                                                                        |
+| -------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| Sales    | day, week or month (`groupBy`) | orders shipped, units, gross sales, discounts, net sales, tax, shipping, total |
+| Products | variant sold                   | units, orders, sales (line totals, before order discounts), share of sales     |
+| Stores   | store, archived ones too       | orders shipped, net sales, average order value                                 |
+
+- Every period of the range is listed, including empty ones. Weeks start on Monday, and the
+  first and last periods are clipped to the range.
+- The figures reconcile with each other: sales net = dashboard revenue = stores total, and
+  products total = sales gross. Tests check this.
+- `storeId` filters the sales and products reports. A store from another organization is a
+  404, like any other foreign id.
+- Reports are not cached, so an export always matches the data at the time it is made. The
+  `(organization_id, shipped_at)` index keeps the range scans cheap.
+- Exports are rate limited (60 per hour per organization) and audited as `report.exported`
+  with the report, range, store and row count, never the figures. CSV cells are protected
+  against formula injection, as for the customer export.
+- There is no customer report: analysts may read reports but not customers, and a list of
+  top customers would expose names and emails to them.
+
+## 8. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.

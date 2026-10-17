@@ -6,8 +6,9 @@ with strict tenant isolation and role-based access.
 
 > **Status:** Phase 5 in progress. Accounts, organizations, team invitations, roles, tenant
 > isolation, the product catalog, inventory, customers and orders (draft to delivery, with stock
-> reservations) work end to end, and the dashboard shows revenue, orders and stock alerts. Next:
-> reports and background jobs. See [docs/roadmap.md](docs/roadmap.md).
+> reservations) work end to end. The dashboard shows revenue, orders and stock alerts, and
+> sales, product and store reports export as CSV. Next: background jobs and notifications. See
+> [docs/roadmap.md](docs/roadmap.md).
 
 ## Design documents
 

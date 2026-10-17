@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowDownRightIcon, ArrowUpRightIcon, MinusIcon } from '@heroicons/react/20/solid';
 import { ChartBarIcon, CheckCircleIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
@@ -13,29 +12,15 @@ import {
 } from '../../components/ui/layout.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { getApiError } from '../../lib/apiClient.js';
-import { formatDate, formatMoney } from '../../lib/format.js';
+import { formatDay, formatMoney } from '../../lib/format.js';
 import { getDashboard } from '../../services/reportService.js';
 import { listOrders } from '../../services/orderService.js';
 import { useHasPermission, useSession } from '../auth/useSession.js';
 import { ORDER_STATUS } from '../orders/orderLabels.js';
+import { RangePicker, useRange } from '../reports/RangePicker.jsx';
 import { RevenueChart, TopProductsChart } from './charts.jsx';
 
-const PRESETS = [
-  { days: 7, label: '7 days' },
-  { days: 30, label: '30 days' },
-  { days: 90, label: '90 days' },
-  { days: 365, label: '12 months' },
-];
 const time = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
-
-function useRange() {
-  const [params, setParams] = useSearchParams();
-  const from = params.get('from') ?? '';
-  const to = params.get('to') ?? '';
-  const days = Number(params.get('days')) || (from && to ? null : 30);
-  const setRange = (next) => setParams(new URLSearchParams(next), { replace: true });
-  return { from, to, days, setRange };
-}
 
 function Change({ value, previousLabel }) {
   if (value === null || value === undefined) {
@@ -70,74 +55,6 @@ function KpiTile({ label, value, children, to }) {
     </Link>
   ) : (
     <div className={className}>{body}</div>
-  );
-}
-
-function RangePicker({ range, current }) {
-  const [custom, setCustom] = useState({
-    from: range.from || current?.from || '',
-    to: range.to || current?.to || '',
-  });
-  const [error, setError] = useState(null);
-  const applyCustom = (e) => {
-    e.preventDefault();
-    if (!custom.from || !custom.to) return setError('Choose both dates.');
-    if (custom.from > custom.to) return setError('The start date must be before the end date.');
-    setError(null);
-    range.setRange({ from: custom.from, to: custom.to });
-  };
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div
-        role="group"
-        aria-label="Date range"
-        className="flex flex-wrap gap-1 rounded-md bg-slate-100 p-1"
-      >
-        {PRESETS.map((p) => (
-          <button
-            key={p.days}
-            type="button"
-            aria-pressed={range.days === p.days}
-            onClick={() => range.setRange(p.days === 30 ? {} : { days: String(p.days) })}
-            className={`rounded px-3 py-1.5 text-sm font-medium ${
-              range.days === p.days
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-      <form onSubmit={applyCustom} className="flex flex-wrap items-end gap-2">
-        <label className="text-xs font-medium text-slate-600">
-          From
-          <input
-            type="date"
-            value={custom.from}
-            onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
-            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
-          />
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          To
-          <input
-            type="date"
-            value={custom.to}
-            onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
-            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
-          />
-        </label>
-        <Button type="submit" size="sm" variant="secondary">
-          Apply
-        </Button>
-      </form>
-      {error && (
-        <p role="alert" className="w-full text-sm text-red-600">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -192,12 +109,8 @@ export function DashboardPage() {
   const { data: session } = useSession();
   const can = useHasPermission();
   const range = useRange();
-  const params =
-    range.from && range.to
-      ? { from: range.from, to: range.to }
-      : range.days === 30
-        ? {}
-        : { days: range.days };
+  const params = range.query;
+
   const dashboard = useQuery({
     queryKey: ['dashboard', params],
     queryFn: () => getDashboard(params),
@@ -206,7 +119,7 @@ export function DashboardPage() {
   });
 
   const d = dashboard.data;
-  const previousLabel = range.days ? `previous ${range.days} days` : 'previous period';
+  const { previousLabel } = range;
 
   return (
     <>
@@ -214,7 +127,7 @@ export function DashboardPage() {
         title="Dashboard"
         description={
           d
-            ? `${session.activeOrganization.name} · ${formatDate(d.range.from)} – ${formatDate(d.range.to)} (${d.range.timezone})`
+            ? `${session.activeOrganization.name} · ${formatDay(d.range.from)} – ${formatDay(d.range.to)} (${d.range.timezone})`
             : session.activeOrganization.name
         }
       />

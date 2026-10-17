@@ -214,7 +214,8 @@ Steps, one branch each:
 
 1. Dashboard (`feature/dashboard`): KPIs with the previous period, revenue trend, top
    products, inventory alerts, recent orders, date ranges in the URL, 60 s cache. ✅
-2. Reports with date ranges and CSV exports (`feature/reports`).
+2. Reports with date ranges and CSV exports (`feature/reports`): sales by day, week or
+   month, sales by product variant, sales by store, a store filter, CSV export. ✅
 3. BullMQ worker and email delivery with retries and history (`feature/background-jobs`).
 4. Low-stock and new-order notifications and a notification center (`feature/notifications`).
 
@@ -240,6 +241,33 @@ Step 1 (dashboard) verification:
 - The Playwright suite registers 11 accounts from one address, more than the 10 per hour
   sign-up limit. `RATE_LIMIT_SCALE` (default 1, refused in production) lets the test server
   raise the limits instead of weakening them.
+
+Step 2 (reports) verification:
+
+- Definitions are in [architecture.md](architecture.md#7-reports), shared with the dashboard
+  through `modules/reports/period.js`.
+- Backend: 13 report tests on the same hand-calculated September scenario as the dashboard
+  (3 orders, 11 units, gross 290.00, discounts 30.00, net 260.00, tax 52.00, shipping 150.00,
+  total 462.00), checking daily, weekly (Monday weeks clipped to the range) and monthly rows;
+  product shares; a second store; the store filter; another organization's store (404);
+  other currencies; all three CSV exports with their audit entry; formula injection;
+  validation; and roles. Sales net equals dashboard revenue in the same range.
+- Sabotage checks: removing the store filter and removing the export audit each made a
+  test fail.
+- Frontend: 10 report tests (URL state, grouping, store filter, paging, export and its
+  errors, empty and error states, access by role), and a unit test for `formatDay`.
+- E2E: `reports.spec.js` ships an order with a discount, tax and shipping, checks the
+  totals, downloads the CSV and checks its total line, then the products and stores tabs.
+  The phone-width check covers the three reports, including with a wide font.
+- Bugs found along the way:
+  - Switching report crashed the page. The previous report's data was kept on screen while
+    the next one loaded, and the new layout could not read it. Only the same report now keeps
+    its previous data, and a test holds the response back to cover the loading moment.
+  - Dates such as "2026-09-01" were shown as August 31 to anyone west of Greenwich (the
+    dashboard had this too). They are now formatted as calendar days by `formatDay`, with a
+    test running in New York time.
+  - Backend tests that build a scenario through the API take 2 to 4 seconds, and the 5 s
+    Jest default made them fail on a slow first run. The timeout is now 20 s.
 
 ## Phase 6: Billing and production readiness
 

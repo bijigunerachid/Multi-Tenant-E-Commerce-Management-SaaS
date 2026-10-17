@@ -555,6 +555,8 @@ model Order {
   @@index([organizationId, status, createdAt(sort: Desc)])
   @@index([organizationId, customerId])
   @@index([organizationId, placedAt(sort: Desc)])
+  // Reports and the dashboard select sales by ship date.
+  @@index([organizationId, shippedAt])
   @@map("orders")
 }
 
