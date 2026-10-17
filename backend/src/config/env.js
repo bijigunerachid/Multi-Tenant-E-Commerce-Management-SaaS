@@ -25,6 +25,10 @@ const envSchema = z.object({
 
   // Local directory for uploaded files (development). Kept outside any web-served folder.
   UPLOAD_DIR: z.string().min(1).default('uploads'),
+
+  // Multiplies every rate limit. Only for automated test servers that legitimately make many
+  // requests from one address; must stay 1 in production (enforced below).
+  RATE_LIMIT_SCALE: z.coerce.number().int().min(1).max(1000).default(1),
 });
 
 /**
@@ -40,6 +44,11 @@ export function loadEnv(source = process.env) {
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
   const env = result.data;
+  if (env.NODE_ENV === 'production' && env.RATE_LIMIT_SCALE !== 1) {
+    throw new Error(
+      'Invalid environment configuration:\n  RATE_LIMIT_SCALE: must be 1 in production',
+    );
+  }
   if (env.NODE_ENV === 'production' && !env.APP_URL.startsWith('https://')) {
     throw new Error('Invalid environment configuration:\n  APP_URL: must use https in production');
   }

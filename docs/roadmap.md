@@ -210,6 +210,37 @@ notification center, short-TTL Redis cache for dashboard aggregates.
 **Acceptance:** report tests compare against hand-calculated fixtures; a job retry test
 passes; the Playwright check "the dashboard reflects the seeded orders" passes.
 
+Steps, one branch each:
+
+1. Dashboard (`feature/dashboard`): KPIs with the previous period, revenue trend, top
+   products, inventory alerts, recent orders, date ranges in the URL, 60 s cache. ✅
+2. Reports with date ranges and CSV exports (`feature/reports`).
+3. BullMQ worker and email delivery with retries and history (`feature/background-jobs`).
+4. Low-stock and new-order notifications and a notification center (`feature/notifications`).
+
+Step 1 (dashboard) verification:
+
+- Metric definitions are in [architecture.md](architecture.md#6-dashboard-metrics).
+- Backend: 12 dashboard tests against a hand-calculated September 2026 scenario (revenue
+  260.00 against 100.00, +160%; AOV 86.67; 4 orders placed against 2; SHIRT-1 at 2 available
+  = 10 received − 4 shipped − 4 reserved), weekly buckets, other currencies, tenant
+  isolation, cache and cache freshness after a change, validation, and roles (owner, manager
+  and analyst allowed; order and inventory managers refused).
+- A new constraint, `orders_shipped_at_check`, makes the database refuse a shipped order
+  without a ship date, or a ship date on an unshipped order.
+- Frontend: 9 dashboard tests, including the table view of each chart, presets and custom
+  ranges in the URL, empty and error states, and what analysts and order managers see. The
+  charts load in their own `vendor-charts` chunk, so pages without charts don't download
+  them.
+- E2E: `dashboard.spec.js` ships one order and places another, then checks every KPI,
+  the top product, the revenue table, the stock alert and the recent order link.
+- The phone-width check found a real bug: a long product name in the inventory alerts
+  stretched the page to 570px. Grid children can now shrink, and the check waits for the
+  data before measuring (it had passed only when it measured the loading skeleton).
+- The Playwright suite registers 11 accounts from one address, more than the 10 per hour
+  sign-up limit. `RATE_LIMIT_SCALE` (default 1, refused in production) lets the test server
+  raise the limits instead of weakening them.
+
 ## Phase 6: Billing and production readiness
 
 Plans, trial, plan limits, Stripe test-mode Checkout and Customer Portal, webhook handler

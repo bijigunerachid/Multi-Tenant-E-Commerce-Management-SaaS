@@ -4,10 +4,10 @@ A multi-tenant e-commerce management SaaS: independent businesses manage their s
 products, inventory, orders, employees, customers and analytics on one shared platform,
 with strict tenant isolation and role-based access.
 
-> **Status:** Phase 4 complete. Accounts, organizations, team invitations, roles, tenant
+> **Status:** Phase 5 in progress. Accounts, organizations, team invitations, roles, tenant
 > isolation, the product catalog, inventory, customers and orders (draft to delivery, with stock
-> reservations) work end to end. Next: Phase 5, dashboard, reports and background jobs. See
-> [docs/roadmap.md](docs/roadmap.md).
+> reservations) work end to end, and the dashboard shows revenue, orders and stock alerts. Next:
+> reports and background jobs. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Design documents
 

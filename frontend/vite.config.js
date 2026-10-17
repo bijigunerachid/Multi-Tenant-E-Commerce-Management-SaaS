@@ -28,6 +28,14 @@ export default defineConfig({
           if (id.includes('react-router')) return 'vendor-router';
           if (id.includes('@tanstack')) return 'vendor-query';
           if (/zod|react-hook-form|@hookform/.test(id)) return 'vendor-forms';
+          // Charts are only used on the dashboard: keep them out of the chunk every page loads.
+          if (
+            /recharts|d3-|victory-vendor|lodash|decimal\.js-light|react-smooth|recharts-scale/.test(
+              id,
+            )
+          ) {
+            return 'vendor-charts';
+          }
           return 'vendor';
         },
       },
@@ -38,5 +46,7 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.js'],
     // Every test starts with fresh mocks: no call counts or implementations leak between tests.
     mockReset: true,
+    // Page tests load lazy route chunks; under a full parallel run one test can exceed 5 s.
+    testTimeout: 15_000,
   },
 });

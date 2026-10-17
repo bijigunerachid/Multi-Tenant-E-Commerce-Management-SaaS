@@ -28,7 +28,9 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-hook-form": "7.90.0",
+    "react-is": "19.3.1",
     "react-router": "7.18.4",
+    "recharts": "2.15.4",
     "zod": "4.6.7"
   }
 }

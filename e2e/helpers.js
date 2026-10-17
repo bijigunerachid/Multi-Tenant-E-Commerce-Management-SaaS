@@ -53,7 +53,9 @@ export async function registerAndOnboard(page, { name, email, organization }) {
   await page.getByLabel('Currency').selectOption('MAD');
   await page.getByLabel('Time zone').selectOption('Africa/Casablanca');
   await page.getByRole('button', { name: 'Create organization' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: organization })).toBeVisible();
+  // Owners land on the dashboard, which names the organization under its heading.
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByText(organization, { exact: false }).first()).toBeVisible();
 }
 
 /** Calls the API from inside the signed-in page, with its cookies and CSRF token. */
