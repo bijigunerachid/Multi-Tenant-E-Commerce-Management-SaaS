@@ -18,6 +18,8 @@ const PAGE_SIZE = 25;
 const KINDS = {
   'member.invitation': 'Team invitation',
   'organization.ownership_transfer': 'Ownership transfer',
+  'notification.order_placed': 'New order notification',
+  'notification.low_stock': 'Low stock notification',
 };
 const STATUS_FILTERS = { '': 'All emails', QUEUED: 'Pending', SENT: 'Sent', FAILED: 'Failed' };
 const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -78,7 +80,7 @@ export function EmailDeliveriesPage() {
     <>
       <PageHeader
         title="Email log"
-        description="Invitations and ownership transfers sent from this organization. Failed emails are retried 5 times before giving up."
+        description="Invitations, ownership transfers and notification emails sent from this organization. Failed emails are retried 5 times before giving up."
       />
       <Card>
         <div className="mb-4">
@@ -114,7 +116,7 @@ export function EmailDeliveriesPage() {
           <EmptyState
             icon={EnvelopeIcon}
             title={status ? 'No emails with this status' : 'No emails sent yet'}
-            description="Emails appear here when you invite someone or transfer ownership."
+            description="Emails appear here when you invite someone, transfer ownership, or a member turns on notification emails."
           />
         ) : (
           <div className="space-y-4">

@@ -5,6 +5,7 @@ import { createRedisClient } from '../../src/config/redis.js';
 import { createMailer } from '../../src/services/mailer.js';
 import { createEmailQueue } from '../../src/jobs/emailQueue.js';
 import { createEmailWorker } from '../../src/jobs/emailWorker.js';
+import { createNotificationDispatcher } from '../../src/jobs/notifications.js';
 import { createLocalStorage } from '../../src/services/storage.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -21,6 +22,9 @@ export async function createTestApp(overrides = {}) {
   const mailer = createMailer({ env });
   const emails = createEmailQueue({ prisma, logger, env });
   const worker = createEmailWorker({ prisma, mailer, logger, env });
+  // Notifications are delivered when a test calls notifications.dispatchPending(), so tests
+  // decide when it happens (the scheduled worker is tested on its own).
+  const notifications = createNotificationDispatcher({ prisma, emails, logger, env });
   // Each test file gets its own throwaway upload directory.
   const uploadDir = mkdtempSync(path.join(tmpdir(), 'vendora-uploads-'));
   const storage = createLocalStorage({ rootDir: uploadDir });
@@ -42,7 +46,19 @@ export async function createTestApp(overrides = {}) {
       overrides.redis ? null : redis.quit(),
     ]);
   };
-  return { app, prisma, redis, mailer, emails, worker, storage, uploadDir, env, close };
+  return {
+    app,
+    prisma,
+    redis,
+    mailer,
+    emails,
+    worker,
+    notifications,
+    storage,
+    uploadDir,
+    env,
+    close,
+  };
 }
 
 /** Empties every application table and the test Redis database. */

@@ -4,6 +4,7 @@ import { recordAudit } from '../../utils/audit.js';
 import { formatMoney } from '../../utils/money.js';
 import { csvRow } from '../../utils/csv.js';
 import { applyStockChange } from '../inventory/inventory.service.js';
+import { recordNotificationEvent } from '../notifications/events.js';
 import { TRANSITIONS, allowedActions, canTransition } from './stateMachine.js';
 import { computeTotals } from './totals.js';
 
@@ -445,6 +446,14 @@ export function createOrderService() {
             actorUserId: req.user.id,
           },
         });
+        if (action === 'place') {
+          await recordNotificationEvent(tx, {
+            organizationId: org,
+            type: 'order.placed',
+            payload: { orderId },
+            actorUserId: req.user.id,
+          });
+        }
         if (action === 'cancel') {
           await recordAudit(tx, req, {
             action: 'order.cancelled',

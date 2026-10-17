@@ -46,6 +46,12 @@ export function permissionsFor(role) {
   return BY_ROLE[role] ?? [];
 }
 
+/** The roles that hold a permission (for example, who should be notified about an order). */
+export function rolesWith(permission) {
+  if (!MATRIX[permission]) throw new Error(`Unknown permission: ${permission}`);
+  return [...MATRIX[permission]];
+}
+
 export function roleHas(role, permission) {
   if (!MATRIX[permission]) throw new Error(`Unknown permission: ${permission}`);
   return MATRIX[permission].includes(role);

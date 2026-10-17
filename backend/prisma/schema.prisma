@@ -179,6 +179,8 @@ model Organization {
   stores             Store[]
   auditLogs          AuditLog[]
   emailDeliveries    EmailDelivery[]
+  notificationEvents NotificationEvent[]
+  notifications      Notification[]
   ownershipTransfer  OwnershipTransfer?
   lastActiveForUsers User[]                   @relation("UserLastActiveOrganization")
   categories         Category[]
@@ -200,14 +202,16 @@ model Organization {
 
 /// Links a user to an organization with one role. Tenant-owned.
 model OrganizationMembership {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String           @map("organization_id") @db.Uuid
-  userId         String           @map("user_id") @db.Uuid
-  role           MemberRole
-  status         MembershipStatus @default(ACTIVE)
-  invitedById    String?          @map("invited_by_id") @db.Uuid
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String           @map("organization_id") @db.Uuid
+  userId             String           @map("user_id") @db.Uuid
+  role               MemberRole
+  status             MembershipStatus @default(ACTIVE)
+  invitedById        String?          @map("invited_by_id") @db.Uuid
+  /// Notification types this member also wants by email (in-app notifications are always on).
+  emailNotifications String[]         @default([]) @map("email_notifications") @db.VarChar(60)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   user         User         @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
@@ -215,6 +219,7 @@ model OrganizationMembership {
 
   ownershipTransfersTo   OwnershipTransfer[] @relation("TransferTarget")
   ownershipTransfersFrom OwnershipTransfer[] @relation("TransferSource")
+  notifications          Notification[]
 
   @@unique([userId, organizationId])
   @@unique([organizationId, id])
@@ -657,4 +662,46 @@ model EmailDelivery {
   @@index([organizationId, createdAt(sort: Desc)])
   @@index([status, createdAt])
   @@map("email_deliveries")
+}
+
+/// Transactional outbox: written in the same transaction as the change it describes (an order
+/// placed, stock falling to its threshold), so a rolled-back change never notifies anyone.
+/// The notification worker turns each event into one Notification per recipient.
+model NotificationEvent {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  type           String    @db.VarChar(60)
+  payload        Json
+  actorUserId    String?   @map("actor_user_id") @db.Uuid
+  attempts       Int       @default(0)
+  lastError      String?   @map("last_error") @db.VarChar(500)
+  processedAt    DateTime? @map("processed_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([createdAt])
+  @@map("notification_events")
+}
+
+/// One notification for one member. `data` is a snapshot taken when it was delivered, so the
+/// text stays the same if the product or store is renamed later.
+model Notification {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  membershipId   String    @map("membership_id") @db.Uuid
+  /// The event it came from; kept without a foreign key so old events can be purged first.
+  eventId        String    @map("event_id") @db.Uuid
+  type           String    @db.VarChar(60)
+  data           Json
+  readAt         DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  membership   OrganizationMembership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([eventId, membershipId])
+  @@index([organizationId, membershipId, createdAt(sort: Desc)])
+  @@map("notifications")
 }

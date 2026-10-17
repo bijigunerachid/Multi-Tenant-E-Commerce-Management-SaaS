@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { AppError, conflict, notFound } from '../../utils/errors.js';
 import { recordAudit } from '../../utils/audit.js';
 import { formatMoney } from '../../utils/money.js';
+import { recordNotificationEvent } from '../notifications/events.js';
 
 // Inventory rules (see docs/data-model.md):
 // - Every quantity change is ONE conditional SQL statement: the condition and the change are
@@ -11,6 +12,9 @@ import { formatMoney } from '../../utils/money.js';
 // - CHECK constraints (on_hand >= 0, 0 <= reserved <= on_hand) back this up in the database.
 // - Every change writes an InventoryMovement in the same transaction.
 // - Raw SQL is not scoped by tenantDb, so every statement filters organization_id itself.
+// - A change that makes a level's status worse (in stock → low → out) records a low-stock
+//   notification event in the same transaction. It fires on the crossing only: stock that
+//   stays low does not notify again until it has gone back above the threshold.
 
 const insufficient = (details) =>
   new AppError(409, 'INSUFFICIENT_STOCK', 'Not enough stock for this change', details);
@@ -33,6 +37,7 @@ export function stockStatus(available, threshold) {
   if (available <= threshold) return 'LOW';
   return 'OK';
 }
+const SEVERITY = { OK: 0, LOW: 1, OUT: 2 };
 
 const escapeLike = (value) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 
@@ -60,6 +65,8 @@ export async function applyStockChange(
   }
   if (onHandDelta === 0 && reservedDelta === 0) throw new Error('Stock change must not be empty');
 
+  const threshold = Prisma.sql`(SELECT low_stock_threshold FROM product_variants
+    WHERE organization_id = ${organizationId}::uuid AND id = ${variantId}::uuid)`;
   let rows;
   if (reservedDelta === 0 && onHandDelta > 0) {
     // Adding stock never violates an invariant: create the level on first receipt.
@@ -68,7 +75,7 @@ export async function applyStockChange(
       VALUES (${randomUUID()}::uuid, ${organizationId}::uuid, ${storeId}::uuid, ${variantId}::uuid, ${onHandDelta}, 0, now(), now())
       ON CONFLICT (organization_id, store_id, variant_id)
       DO UPDATE SET on_hand = inventory_levels.on_hand + EXCLUDED.on_hand, updated_at = now()
-      RETURNING id, on_hand AS "onHand", reserved`;
+      RETURNING id, on_hand AS "onHand", reserved, ${threshold} AS threshold`;
   } else {
     rows = await tx.$queryRaw`
       UPDATE inventory_levels
@@ -79,7 +86,7 @@ export async function applyStockChange(
         AND on_hand + ${onHandDelta} >= 0
         AND reserved + ${reservedDelta} >= 0
         AND reserved + ${reservedDelta} <= on_hand + ${onHandDelta}
-      RETURNING id, on_hand AS "onHand", reserved`;
+      RETURNING id, on_hand AS "onHand", reserved, ${threshold} AS threshold`;
   }
 
   if (rows.length === 0) {
@@ -107,6 +114,18 @@ export async function applyStockChange(
       orderId,
     },
   });
+
+  const available = level.onHand - level.reserved;
+  const status = stockStatus(available, level.threshold);
+  const before = stockStatus(available - (onHandDelta - reservedDelta), level.threshold);
+  if (SEVERITY[status] > SEVERITY[before]) {
+    await recordNotificationEvent(tx, {
+      organizationId,
+      type: 'inventory.low_stock',
+      payload: { storeId, variantId, status, available, threshold: level.threshold },
+      actorUserId,
+    });
+  }
   return { levelId: level.id, onHand: level.onHand, reserved: level.reserved, movement };
 }
 

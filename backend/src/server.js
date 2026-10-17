@@ -5,6 +5,7 @@ import { createRedisClient } from './config/redis.js';
 import { createMailer } from './services/mailer.js';
 import { createEmailQueue } from './jobs/emailQueue.js';
 import { createEmailWorker } from './jobs/emailWorker.js';
+import { createNotificationWorker } from './jobs/notifications.js';
 import { createLocalStorage } from './services/storage.js';
 import { createApp } from './app.js';
 
@@ -14,20 +15,19 @@ const prisma = createPrismaClient({ databaseUrl: env.DATABASE_URL });
 const redis = createRedisClient({ redisUrl: env.REDIS_URL, logger });
 const storage = createLocalStorage({ rootDir: env.UPLOAD_DIR });
 const emails = createEmailQueue({ prisma, logger, env });
-// Normally emails are sent by the separate worker process (src/worker.js).
-const worker =
-  env.EMAIL_WORKER === 'in-process'
-    ? createEmailWorker({ prisma, mailer: createMailer({ env }), logger, env })
-    : null;
+// Background jobs normally run in the separate worker process (src/worker.js).
+const inProcess = env.JOB_WORKER === 'in-process';
+const worker = inProcess
+  ? createEmailWorker({ prisma, mailer: createMailer({ env }), logger, env })
+  : null;
+const notifications = inProcess ? createNotificationWorker({ prisma, emails, logger, env }) : null;
 
 await Promise.all([prisma.$connect(), redis.connect(), emails.queue.waitUntilReady()]);
+await notifications?.start();
 
 const app = createApp({ env, logger, prisma, redis, emails, storage });
 const server = app.listen(env.PORT, () => {
-  logger.info(
-    { port: env.PORT, env: env.NODE_ENV, emailWorker: env.EMAIL_WORKER },
-    'API listening',
-  );
+  logger.info({ port: env.PORT, env: env.NODE_ENV, jobWorker: env.JOB_WORKER }, 'API listening');
 });
 
 let shuttingDown = false;
@@ -42,8 +42,8 @@ async function shutdown(signal) {
   }, 10_000);
   forceExit.unref();
   server.close(async () => {
-    // The worker finishes the email it is sending before closing.
-    await worker?.close();
+    // The workers finish the job they are running before closing.
+    await Promise.allSettled([worker?.close(), notifications?.close()]);
     await Promise.allSettled([emails.close(), prisma.$disconnect(), redis.quit()]);
     process.exit(0);
   });

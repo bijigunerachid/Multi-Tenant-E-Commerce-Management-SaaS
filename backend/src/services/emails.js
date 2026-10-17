@@ -73,3 +73,42 @@ export function ownershipTransferMessage({ appUrl, organizationName, fromName })
     ),
   };
 }
+
+// Notification emails are opt-in per member; each says why it was sent and where to stop it.
+function notificationFooter(appUrl) {
+  return `You receive this email because you turned it on in your Vendora notification settings: ${appUrl}/notifications`;
+}
+
+export function orderPlacedMessage({ appUrl, organizationName, data }) {
+  const items = `${data.itemCount} ${data.itemCount === 1 ? 'item' : 'items'}`;
+  return {
+    subject: `New order #${data.number} in ${organizationName}`,
+    ...layout(
+      [
+        `Order #${data.number} was placed at ${data.storeName}: ${items}, ${data.total} ${data.currency}.`,
+        notificationFooter(appUrl),
+      ],
+      { label: 'Open the order', url: `${appUrl}/orders/${data.orderId}` },
+    ),
+  };
+}
+
+export function lowStockMessage({ appUrl, organizationName, data }) {
+  const out = data.status === 'OUT';
+  const product = `${data.productName} (${data.variantName}, ${data.sku})`;
+  return {
+    subject: `${out ? 'Out of stock' : 'Low stock'}: ${data.sku} in ${organizationName}`,
+    ...layout(
+      [
+        out
+          ? `${product} is out of stock at ${data.storeName}.`
+          : `${product} is down to ${data.available} available at ${data.storeName} (alert at ${data.threshold}).`,
+        notificationFooter(appUrl),
+      ],
+      {
+        label: 'Open inventory',
+        url: `${appUrl}/inventory?storeId=${data.storeId}&search=${encodeURIComponent(data.sku)}`,
+      },
+    ),
+  };
+}

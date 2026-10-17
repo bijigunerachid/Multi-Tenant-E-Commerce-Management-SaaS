@@ -1,6 +1,19 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, configure } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
+import * as notificationService from '../services/notificationService.js';
+
+// The notification bell is in the app shell, so every page test renders it. By default it
+// has nothing to show; notification tests set their own answers.
+vi.mock('../services/notificationService.js');
+beforeEach(() => {
+  vi.mocked(notificationService.getUnreadCount).mockResolvedValue(0);
+  vi.mocked(notificationService.listNotifications).mockResolvedValue({
+    data: [],
+    meta: { page: 1, pageSize: 20, total: 0, unreadCount: 0 },
+  });
+  vi.mocked(notificationService.getNotificationPreferences).mockResolvedValue([]);
+});
 
 // jsdom does not implement HTMLDialogElement.showModal()/close() (all target browsers do).
 // This stand-in only toggles the `open` attribute and fires `close`, which is all the app's
