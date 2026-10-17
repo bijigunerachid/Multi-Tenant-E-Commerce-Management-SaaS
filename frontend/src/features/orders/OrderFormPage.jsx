@@ -184,7 +184,7 @@ function OrderForm({ order, initialCustomer }) {
   }, [customerDetail.data, state.addressChosen, state.shippingAddressId]);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
       <div className="space-y-6 lg:col-span-2">
         {formError && <Alert tone="error">{formError}</Alert>}
 

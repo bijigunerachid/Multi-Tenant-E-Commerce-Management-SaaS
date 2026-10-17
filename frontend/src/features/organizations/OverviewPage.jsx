@@ -24,7 +24,7 @@ export function OverviewPage() {
         title={org.name}
         description={`You are signed in as ${ROLE_LABELS[org.role].toLowerCase()}.`}
       />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
         <StoresCard />
 
         {can('member:read') && (
