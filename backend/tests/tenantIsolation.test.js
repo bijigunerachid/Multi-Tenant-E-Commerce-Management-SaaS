@@ -222,7 +222,7 @@ test('stock cannot be moved across organizations through request bodies', async 
 });
 
 test('an invitation token from org B cannot be used to join org A, and joins only B', async () => {
-  const { token } = lastEmailTo(ctx.mailer, 'b-invitee@example.com');
+  const { token } = await lastEmailTo(ctx, 'b-invitee@example.com');
   const client = A.members.OWNER.client;
 
   // A's owner is signed in with a different email, so the invitation is refused outright.

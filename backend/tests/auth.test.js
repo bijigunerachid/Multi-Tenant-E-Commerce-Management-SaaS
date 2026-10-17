@@ -44,7 +44,7 @@ describe('registration', () => {
     const stored = await ctx.prisma.user.findUnique({ where: { email: 'amina@example.com' } });
     expect(stored.passwordHash).toMatch(/^\$argon2id\$/);
 
-    const email = lastEmailTo(ctx.mailer, 'amina@example.com');
+    const email = await lastEmailTo(ctx, 'amina@example.com');
     expect(email.subject).toBe('Confirm your email address');
     expect(email.token).toBeTruthy();
 
@@ -231,7 +231,7 @@ describe('email verification', () => {
       email: 'y@example.com',
       password: 'a-long-enough-password',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'y@example.com');
+    const { token } = await lastEmailTo(ctx, 'y@example.com');
 
     expect((await client.post('/auth/email/verify', { token })).status).toBe(204);
     expect((await client.get('/auth/me')).body.data.user.emailVerified).toBe(true);
@@ -248,10 +248,10 @@ describe('email verification', () => {
       email: 'z@example.com',
       password: 'a-long-enough-password',
     });
-    const first = lastEmailTo(ctx.mailer, 'z@example.com').token;
+    const first = (await lastEmailTo(ctx, 'z@example.com')).token;
 
     expect((await client.post('/auth/email/resend')).status).toBe(202);
-    const second = lastEmailTo(ctx.mailer, 'z@example.com').token;
+    const second = (await lastEmailTo(ctx, 'z@example.com')).token;
 
     expect((await client.post('/auth/email/verify', { token: first })).status).toBe(400);
     expect((await client.post('/auth/email/verify', { token: second })).status).toBe(204);
@@ -264,7 +264,7 @@ describe('email verification', () => {
       email: 'e@example.com',
       password: 'a-long-enough-password',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'e@example.com');
+    const { token } = await lastEmailTo(ctx, 'e@example.com');
     await ctx.prisma.authToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
 
     expect((await client.post('/auth/email/verify', { token })).status).toBe(400);
@@ -282,6 +282,7 @@ describe('password reset', () => {
     expect(known.status).toBe(202);
     expect(unknown.status).toBe(202);
     expect(known.body).toEqual(unknown.body);
+    await ctx.emails.drain();
     expect(ctx.mailer.sent.map((m) => m.to)).toEqual([user.email]);
   });
 
@@ -289,7 +290,7 @@ describe('password reset', () => {
     const user = await createUser(ctx.prisma);
     const existing = await signIn(ctx.app, user);
     await apiClient(ctx.app).post('/auth/password/forgot', { email: user.email });
-    const { token } = lastEmailTo(ctx.mailer, user.email);
+    const { token } = await lastEmailTo(ctx, user.email);
 
     const reset = await apiClient(ctx.app).post('/auth/password/reset', {
       token,
@@ -319,7 +320,7 @@ describe('password reset', () => {
       email: 'v@example.com',
       password: 'a-long-enough-password',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'v@example.com');
+    const { token } = await lastEmailTo(ctx, 'v@example.com');
 
     const res = await apiClient(ctx.app).post('/auth/password/reset', {
       token,

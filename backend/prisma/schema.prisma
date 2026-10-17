@@ -104,6 +104,12 @@ enum ReservationStatus {
   @@map("reservation_status")
 }
 
+enum EmailDeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
 enum ProductStatus {
   DRAFT
   ACTIVE
@@ -172,6 +178,7 @@ model Organization {
   invitations        Invitation[]
   stores             Store[]
   auditLogs          AuditLog[]
+  emailDeliveries    EmailDelivery[]
   ownershipTransfer  OwnershipTransfer?
   lastActiveForUsers User[]                   @relation("UserLastActiveOrganization")
   categories         Category[]
@@ -625,4 +632,29 @@ model InventoryReservation {
   @@unique([organizationId, orderItemId])
   @@index([organizationId, inventoryLevelId, status])
   @@map("inventory_reservations")
+}
+
+/// One transactional email and what happened to it. The message itself (which can contain a
+/// one-time link) is never stored here: it travels only in the queue job, which is deleted
+/// once the email is sent or has failed for good. Account emails (verification, password
+/// reset) have no organization.
+model EmailDelivery {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String?             @map("organization_id") @db.Uuid
+  kind           String              @db.VarChar(60)
+  toAddress      String              @map("to_address") @db.VarChar(254)
+  subject        String              @db.VarChar(300)
+  status         EmailDeliveryStatus @default(QUEUED)
+  attempts       Int                 @default(0)
+  lastError      String?             @map("last_error") @db.VarChar(500)
+  sentAt         DateTime?           @map("sent_at") @db.Timestamptz(3)
+  failedAt       DateTime?           @map("failed_at") @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@map("email_deliveries")
 }

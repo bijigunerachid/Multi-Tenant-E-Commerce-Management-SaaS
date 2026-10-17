@@ -118,7 +118,7 @@ describe('invitations', () => {
       role: 'INVENTORY_MANAGER',
     });
 
-    const email = lastEmailTo(ctx.mailer, 'new.hire@example.com');
+    const email = await lastEmailTo(ctx, 'new.hire@example.com');
     expect(email.subject).toBe('You are invited to join Sahara Supply on Vendora');
     expect(email.text).toContain('as Inventory manager');
 
@@ -160,7 +160,7 @@ describe('invitations', () => {
     const existing = await createUser(ctx.prisma, { email: 'existing@example.com' });
     const stranger = await createUser(ctx.prisma);
     await s.ownerClient.post('/members/invitations', { email: existing.email, role: 'ANALYST' });
-    const { token } = lastEmailTo(ctx.mailer, existing.email);
+    const { token } = await lastEmailTo(ctx, existing.email);
 
     const anonymous = await apiClient(ctx.app).post('/invitations/accept', { token });
     expect(anonymous.status).toBe(409);
@@ -203,7 +203,7 @@ describe('invitations', () => {
       email: 'late@example.com',
       role: 'ANALYST',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'late@example.com');
+    const { token } = await lastEmailTo(ctx, 'late@example.com');
     await ctx.prisma.invitation.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
 
     const accept = await apiClient(ctx.app).post('/invitations/accept', {
@@ -229,7 +229,7 @@ describe('invitations', () => {
       email: 'gone@example.com',
       role: 'ANALYST',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'gone@example.com');
+    const { token } = await lastEmailTo(ctx, 'gone@example.com');
 
     expect((await s.ownerClient.delete(`/members/invitations/${invite.body.data.id}`)).status).toBe(
       204,
@@ -259,7 +259,7 @@ describe('invitations', () => {
       email: 'race@example.com',
       role: 'ANALYST',
     });
-    const { token } = lastEmailTo(ctx.mailer, 'race@example.com');
+    const { token } = await lastEmailTo(ctx, 'race@example.com');
 
     const results = await Promise.all(
       [1, 2].map(() =>

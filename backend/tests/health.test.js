@@ -30,8 +30,8 @@ describe('health endpoints', () => {
   test('GET /api/v1/health/ready is 503 when a dependency is down, without leaking details', async () => {
     const brokenRedis = { ping: () => Promise.reject(new Error('ECONNREFUSED 10.0.0.5:6379')) };
     const broken = await createTestApp({ prisma: ctx.prisma, redis: brokenRedis });
-
     const res = await request(broken.app).get('/api/v1/health/ready');
+    await broken.close(); // closes its own email queue and worker; prisma is shared
 
     expect(res.status).toBe(503);
     expect(res.body.data).toEqual({

@@ -222,6 +222,7 @@ describe('ownership transfer', () => {
       password: PASSWORD,
     });
     expect(start.status).toBe(201);
+    await ctx.emails.drain();
     expect(ctx.mailer.sent.at(-1).to).toBe(s.manager.user.email);
 
     const accept = await s.managerClient.post('/organizations/current/ownership-transfer/accept');

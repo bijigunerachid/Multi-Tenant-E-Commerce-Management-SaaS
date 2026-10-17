@@ -40,7 +40,7 @@ codebase (`backend/`) and start from different entry points (`src/server.js` and
 | Row-Level Security      | Evaluated in Phase 6 for `orders`, `customers` and `inventory_levels`, using `set_config('app.organization_id', …, true)` inside a transaction                                                                                         | Defense in depth. It is deferred because it changes how every query runs; the layers above are the primary control.                                                                                                                                                                                                                             |
 | Money                   | `Decimal(12,2)` columns, handled with Prisma's `Decimal` (decimal.js) in services, sent as strings in JSON. Every monetary record stores a 3-letter ISO currency code                                                                  | No floating-point errors.                                                                                                                                                                                                                                                                                                                       |
 | Inventory concurrency   | A conditional atomic `UPDATE … SET reserved = reserved + $q WHERE id = $id AND on_hand - reserved >= $q RETURNING …` inside a transaction, plus `CHECK` constraints                                                                    | No read-then-write race. The database refuses negative stock even if a code path forgets the check.                                                                                                                                                                                                                                             |
-| Background jobs         | BullMQ on Redis, with retries and exponential backoff. Failed jobs are kept and shown in notification history                                                                                                                          |                                                                                                                                                                                                                                                                                                                                                 |
+| Background jobs         | BullMQ on Redis, with retries and exponential backoff. Each email has an `EmailDelivery` row (status, attempts, last error); finished jobs are removed so one-time links are not kept                                                  |                                                                                                                                                                                                                                                                                                                                                 |
 | Validation              | Zod schemas, shared in spirit (not as code) between the frontend (React Hook Form) and the backend (request middleware)                                                                                                                | The backend is the authority. Frontend validation only improves UX.                                                                                                                                                                                                                                                                             |
 | Logging                 | `pino` + `pino-http`, JSON logs, a request ID on every log line and in the `X-Request-Id` response header. Passwords, cookies and tokens are redacted                                                                                  |                                                                                                                                                                                                                                                                                                                                                 |
 | API docs                | OpenAPI 3.1 spec served at `/api/docs` (Swagger UI, disabled in production unless enabled explicitly)                                                                                                                                  |                                                                                                                                                                                                                                                                                                                                                 |
@@ -183,14 +183,52 @@ zone, in the default currency. The shared definitions live in `modules/reports/p
 - There is no customer report: analysts may read reports but not customers, and a list of
   top customers would expose names and emails to them.
 
-## 8. Trust boundaries
+## 8. Background jobs
+
+Emails are not sent during the request. `emails.enqueue()` (in `jobs/emailQueue.js`)
+writes an `EmailDelivery` row and adds a BullMQ job; a worker (`jobs/emailWorker.js`) sends
+it and records the result.
+
+```
+request ──► EmailDelivery (QUEUED) + job ──► worker ──► SMTP
+                                               │ ok          → SENT, sent_at
+                                               │ temporary   → still QUEUED, attempts + 1,
+                                               │               last_error, retried later
+                                               │ 5xx / bad address, or 5th attempt
+                                               └─────────────→ FAILED, failed_at
+```
+
+- **Retries.** 5 attempts with exponential backoff (30 s, 1 min, 2 min, 4 min by default,
+  `EMAIL_RETRY_DELAY_MS`). SMTP 5xx replies and rejected addresses are permanent and are not
+  retried.
+- **No secrets at rest.** Verification, reset and invitation emails contain one-time links,
+  and those tokens are stored only as hashes. So the message body is never written to the
+  database: it lives only in the job, and jobs are removed as soon as they are sent or have
+  failed for good.
+- **At least once.** The worker skips a delivery that is no longer `QUEUED`. A crash between
+  sending and recording can still send an email twice; it can never silently drop one.
+- **Requests never fail because of email.** If the job cannot be queued (Redis down), the
+  delivery is recorded as `FAILED` with the reason and the request still succeeds, as before.
+  The producer connection does not queue commands offline, so requests do not hang.
+- **Where the worker runs.** In production, as its own process: `npm run worker -w backend`,
+  with the same environment as the API. `npm run dev` starts it next to the API. With
+  `EMAIL_WORKER=in-process` the API runs it itself (the end-to-end tests do this).
+- **History.** Owners see their organization's deliveries (invitations, ownership transfers)
+  under Settings → Email log (`GET /email-deliveries`, `audit:read`). Account emails
+  (verification, password reset) belong to no organization and are not listed there.
+- **Constraints.** The database requires `sent_at` exactly for `SENT`, `failed_at` exactly
+  for `FAILED`, and `attempts >= 0`.
+
+## 9. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.
 2. **API → database.** Tenant scope is applied by `tenantDb`, and composite foreign keys
    and `CHECK` constraints back it up.
-3. **Queue → worker.** A job payload is data, not authority. Each job carries
-   `organizationId` and the worker re-reads records through `tenantDb` for that organization.
+3. **Queue → worker.** A job payload is data, not authority. An email job carries only
+   the delivery id and the rendered message; the worker re-reads the delivery row and sends
+   nothing for a delivery that is no longer queued. Jobs that touch tenant data must carry
+   `organizationId` and re-read records through `tenantDb` for that organization.
 4. **Stripe → webhook.** The signature is verified against the raw body, the event ID is
    stored with a unique constraint (idempotency), and subscription state changes only from
    verified events, never from a browser redirect.

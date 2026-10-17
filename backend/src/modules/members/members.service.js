@@ -35,7 +35,7 @@ function presentInvitation(inv) {
 const invalidInvitation = () =>
   new AppError(410, 'INVITATION_INVALID', 'This invitation is invalid, expired or already used');
 
-export function createMemberService({ prisma, mailer, env }) {
+export function createMemberService({ prisma, emails, env }) {
   /**
    * Loads a member of the current organization for an administrative change and applies the
    * rules every such change shares: the member exists in this organization (404 otherwise,
@@ -169,9 +169,11 @@ export function createMemberService({ prisma, mailer, env }) {
       }
 
       const org = await req.db.organization.findFirstOrThrow();
-      await mailer.send({
+      await emails.enqueue({
+        kind: 'member.invitation',
         to: email,
-        ...invitationMessage({
+        organizationId: req.ctx.organizationId,
+        message: invitationMessage({
           appUrl: env.APP_URL,
           organizationName: org.name,
           inviterName: req.user.name,

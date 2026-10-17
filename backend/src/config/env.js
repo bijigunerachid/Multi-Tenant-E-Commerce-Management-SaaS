@@ -23,6 +23,12 @@ const envSchema = z.object({
   SMTP_URL: z.url({ protocol: /^smtps?$/ }).default('smtp://127.0.0.1:1025'),
   MAIL_FROM: z.string().min(3).default('Vendora <no-reply@vendora.local>'),
 
+  // Emails are sent by a queue worker. "separate": run it with `npm run worker` (production);
+  // "in-process": the API process runs it too (end-to-end tests, single-process setups).
+  EMAIL_WORKER: z.enum(['separate', 'in-process']).default('separate'),
+  // First retry delay; each further retry waits twice as long (5 attempts in total).
+  EMAIL_RETRY_DELAY_MS: z.coerce.number().int().min(10).max(3_600_000).default(30_000),
+
   // Local directory for uploaded files (development). Kept outside any web-served folder.
   UPLOAD_DIR: z.string().min(1).default('uploads'),
 

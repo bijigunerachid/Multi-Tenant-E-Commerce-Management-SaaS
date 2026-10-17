@@ -10,7 +10,7 @@
     "node": ">=22.9.0"
   },
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev": "concurrently -n api,worker,web -c blue,yellow,magenta \"npm run dev -w backend\" \"npm run dev:worker -w backend\" \"npm run dev -w frontend\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

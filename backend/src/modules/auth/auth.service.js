@@ -108,12 +108,13 @@ async function consumeToken(db, token, purpose) {
   return record.userId;
 }
 
-export function createAuthService({ prisma, sessionStore, mailer, env }) {
+export function createAuthService({ prisma, sessionStore, emails, env }) {
   async function sendVerificationEmail(user) {
     const token = await issueToken(prisma, user.id, 'EMAIL_VERIFY', EMAIL_VERIFY_TTL_MS);
-    await mailer.send({
+    await emails.enqueue({
+      kind: 'auth.verify_email',
       to: user.email,
-      ...verifyEmailMessage({ appUrl: env.APP_URL, name: user.name, token }),
+      message: verifyEmailMessage({ appUrl: env.APP_URL, name: user.name, token }),
     });
   }
 
@@ -247,9 +248,10 @@ export function createAuthService({ prisma, sessionStore, mailer, env }) {
       // Same response whether or not the account exists (no account enumeration).
       if (!user || user.status !== 'ACTIVE') return;
       const token = await issueToken(prisma, user.id, 'PASSWORD_RESET', PASSWORD_RESET_TTL_MS);
-      await mailer.send({
+      await emails.enqueue({
+        kind: 'auth.password_reset',
         to: user.email,
-        ...passwordResetMessage({ appUrl: env.APP_URL, name: user.name, token }),
+        message: passwordResetMessage({ appUrl: env.APP_URL, name: user.name, token }),
       });
       await recordAudit(prisma, req, {
         action: 'auth.password_reset_requested',

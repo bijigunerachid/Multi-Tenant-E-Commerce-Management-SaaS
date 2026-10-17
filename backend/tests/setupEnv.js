@@ -8,5 +8,7 @@ process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 process.env.REDIS_URL = process.env.TEST_REDIS_URL;
 process.env.LOG_LEVEL = process.env.TEST_LOG_LEVEL ?? 'silent';
 process.env.MAIL_TRANSPORT = 'memory';
+// Retries a few milliseconds apart, so retry tests run fast.
+process.env.EMAIL_RETRY_DELAY_MS = '20';
 process.env.APP_URL = 'http://localhost:5173';
 process.env.CORS_ORIGINS = 'http://localhost:5173';

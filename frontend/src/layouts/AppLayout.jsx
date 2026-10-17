@@ -9,6 +9,7 @@ import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   ChevronUpDownIcon,
+  EnvelopeIcon,
   CubeIcon,
   HomeIcon,
   ShoppingBagIcon,
@@ -43,6 +44,7 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: ChartBarIcon, permission: 'report:read' },
   { to: '/employees', label: 'Employees', icon: UsersIcon, permission: 'member:read' },
   { to: '/settings/organization', label: 'Organization', icon: BuildingOfficeIcon },
+  { to: '/settings/emails', label: 'Email log', icon: EnvelopeIcon, permission: 'audit:read' },
   { to: '/settings/profile', label: 'Your profile', icon: UserCircleIcon },
 ];
 
