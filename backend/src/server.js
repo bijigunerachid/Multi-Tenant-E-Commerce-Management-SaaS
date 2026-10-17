@@ -3,6 +3,8 @@ import { createLogger } from './config/logger.js';
 import { createPrismaClient } from './config/database.js';
 import { createRedisClient } from './config/redis.js';
 import { createMailer } from './services/mailer.js';
+import { createEmailQueue } from './jobs/emailQueue.js';
+import { createEmailWorker } from './jobs/emailWorker.js';
 import { createLocalStorage } from './services/storage.js';
 import { createApp } from './app.js';
 
@@ -10,14 +12,22 @@ const env = loadEnv();
 const logger = createLogger({ level: env.LOG_LEVEL });
 const prisma = createPrismaClient({ databaseUrl: env.DATABASE_URL });
 const redis = createRedisClient({ redisUrl: env.REDIS_URL, logger });
-const mailer = createMailer({ env, logger });
 const storage = createLocalStorage({ rootDir: env.UPLOAD_DIR });
+const emails = createEmailQueue({ prisma, logger, env });
+// Normally emails are sent by the separate worker process (src/worker.js).
+const worker =
+  env.EMAIL_WORKER === 'in-process'
+    ? createEmailWorker({ prisma, mailer: createMailer({ env }), logger, env })
+    : null;
 
-await Promise.all([prisma.$connect(), redis.connect()]);
+await Promise.all([prisma.$connect(), redis.connect(), emails.queue.waitUntilReady()]);
 
-const app = createApp({ env, logger, prisma, redis, mailer, storage });
+const app = createApp({ env, logger, prisma, redis, emails, storage });
 const server = app.listen(env.PORT, () => {
-  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');
+  logger.info(
+    { port: env.PORT, env: env.NODE_ENV, emailWorker: env.EMAIL_WORKER },
+    'API listening',
+  );
 });
 
 let shuttingDown = false;
@@ -32,7 +42,9 @@ async function shutdown(signal) {
   }, 10_000);
   forceExit.unref();
   server.close(async () => {
-    await Promise.allSettled([prisma.$disconnect(), redis.quit()]);
+    // The worker finishes the email it is sending before closing.
+    await worker?.close();
+    await Promise.allSettled([emails.close(), prisma.$disconnect(), redis.quit()]);
     process.exit(0);
   });
 }

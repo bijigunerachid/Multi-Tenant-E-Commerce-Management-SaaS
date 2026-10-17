@@ -5,7 +5,9 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "dev:worker": "node --env-file-if-exists=.env --watch src/worker.js",
     "start": "node src/server.js",
+    "worker": "node src/worker.js",
     "test": "node --env-file-if-exists=.env --experimental-vm-modules ../node_modules/jest/bin/jest.js --runInBand",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -15,6 +17,7 @@
   "dependencies": {
     "@prisma/client": "6.19.3",
     "argon2": "0.45.1",
+    "bullmq": "6.3.11",
     "cookie-parser": "1.4.7",
     "cors": "2.8.6",
     "express": "5.3.0",

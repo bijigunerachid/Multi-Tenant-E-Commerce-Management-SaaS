@@ -28,6 +28,7 @@ export const TENANT_MODELS = new Set([
   'OrderStatusHistory',
   'InventoryReservation',
   'OrganizationCounter',
+  'EmailDelivery',
 ]);
 
 const WHERE_OPERATIONS = new Set([

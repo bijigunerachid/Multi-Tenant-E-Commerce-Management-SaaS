@@ -73,6 +73,7 @@ test('no app page scrolls horizontally on a phone', async ({ page }) => {
     '/reports?report=stores',
     '/employees',
     '/settings/organization',
+    '/settings/emails',
     '/settings/profile',
   ];
   for (const path of paths) {

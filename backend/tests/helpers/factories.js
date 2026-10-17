@@ -103,9 +103,10 @@ export function uploadImage(client, productId, buffer = TINY_PNG, filename = 'ph
     .attach('file', buffer, filename);
 }
 
-/** The text of the last email sent to `to`, and the token in its link. */
-export function lastEmailTo(mailer, to) {
-  const message = [...mailer.sent].reverse().find((m) => m.to === to);
+/** The newest email sent to `to`, with its token, once every queued email has been sent. */
+export async function lastEmailTo(ctx, to) {
+  await ctx.emails.drain();
+  const message = [...ctx.mailer.sent].reverse().find((m) => m.to === to);
   if (!message) return null;
   const token = message.text.match(/token=([A-Za-z0-9_-]+)/)?.[1] ?? null;
   return { ...message, token };

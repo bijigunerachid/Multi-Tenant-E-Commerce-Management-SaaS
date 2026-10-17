@@ -21,6 +21,7 @@ import { inventoryRoutes } from './modules/inventory/inventory.routes.js';
 import { customerRoutes } from './modules/customers/customers.routes.js';
 import { orderRoutes } from './modules/orders/orders.routes.js';
 import { reportRoutes } from './modules/reports/reports.routes.js';
+import { emailRoutes } from './modules/emails/emails.routes.js';
 
 const MODULES = [
   authRoutes,
@@ -35,12 +36,13 @@ const MODULES = [
   customerRoutes,
   orderRoutes,
   reportRoutes,
+  emailRoutes,
 ];
 
 /**
  * Builds the Express application. Dependencies are passed in so tests can supply their own.
  */
-export function createApp({ env, logger, prisma, redis, mailer, storage }) {
+export function createApp({ env, logger, prisma, redis, emails, storage }) {
   const app = express();
   configureRateLimits({ scale: env.RATE_LIMIT_SCALE });
 
@@ -71,7 +73,7 @@ export function createApp({ env, logger, prisma, redis, mailer, storage }) {
     idleSeconds: env.SESSION_IDLE_MINUTES * 60,
     absoluteSeconds: env.SESSION_ABSOLUTE_DAYS * 24 * 60 * 60,
   });
-  const deps = { env, logger, prisma, redis, mailer, storage, sessionStore };
+  const deps = { env, logger, prisma, redis, emails, storage, sessionStore };
 
   const api = express.Router();
   api.use('/health', healthRouter({ prisma, redis }));

@@ -56,6 +56,10 @@ const CustomerDetailPage = page(
 );
 const OrdersPage = page(() => import('../features/orders/OrdersPage.jsx'), 'OrdersPage');
 const OrderFormPage = page(() => import('../features/orders/OrderFormPage.jsx'), 'OrderFormPage');
+const EmailDeliveriesPage = page(
+  () => import('../features/emails/EmailDeliveriesPage.jsx'),
+  'EmailDeliveriesPage',
+);
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -196,6 +200,16 @@ export const routes = [
                     path: 'settings/organization',
                     lazy: OrganizationSettingsPage,
                     handle: { crumb: 'Organization settings' },
+                  },
+                  {
+                    element: <RequirePermission permission="audit:read" />,
+                    children: [
+                      {
+                        path: 'settings/emails',
+                        lazy: EmailDeliveriesPage,
+                        handle: { crumb: 'Email log' },
+                      },
+                    ],
                   },
                   {
                     path: 'settings/profile',

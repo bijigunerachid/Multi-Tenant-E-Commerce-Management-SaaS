@@ -33,7 +33,7 @@ function presentTransfer(transfer) {
   };
 }
 
-export function createOrganizationService({ prisma, mailer, env }) {
+export function createOrganizationService({ prisma, emails, env }) {
   /** Loads the pending transfer, deleting it first if it has expired. */
   async function loadTransfer(db) {
     const transfer = await db.ownershipTransfer.findFirst({
@@ -220,9 +220,11 @@ export function createOrganizationService({ prisma, mailer, env }) {
       });
 
       const org = await req.db.organization.findFirstOrThrow();
-      await mailer.send({
+      await emails.enqueue({
+        kind: 'organization.ownership_transfer',
         to: target.user.email,
-        ...ownershipTransferMessage({
+        organizationId: req.ctx.organizationId,
+        message: ownershipTransferMessage({
           appUrl: env.APP_URL,
           organizationName: org.name,
           fromName: req.user.name,

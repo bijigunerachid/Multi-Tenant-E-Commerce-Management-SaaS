@@ -82,7 +82,7 @@ Decisions and deferrals:
 - Owners cannot be demoted, deactivated or created through member management; ownership
   changes only through the two-step transfer, which keeps exactly one active owner.
 - Email is sent directly (no queue yet). A delivery failure is logged and does not fail the
-  request. Phase 5 moves delivery to BullMQ with retries and history.
+  request. Phase 5 moved delivery to BullMQ with retries and history (step 3).
 - Platform super-admin routes are Phase 6.
 
 ## Phase 4: Core business modules ✅
@@ -216,7 +216,7 @@ Steps, one branch each:
    products, inventory alerts, recent orders, date ranges in the URL, 60 s cache. ✅
 2. Reports with date ranges and CSV exports (`feature/reports`): sales by day, week or
    month, sales by product variant, sales by store, a store filter, CSV export. ✅
-3. BullMQ worker and email delivery with retries and history (`feature/background-jobs`).
+3. BullMQ worker and email delivery with retries and history (`feature/background-jobs`). ✅
 4. Low-stock and new-order notifications and a notification center (`feature/notifications`).
 
 Step 1 (dashboard) verification:
@@ -268,6 +268,34 @@ Step 2 (reports) verification:
     test running in New York time.
   - Backend tests that build a scenario through the API take 2 to 4 seconds, and the 5 s
     Jest default made them fail on a slow first run. The timeout is now 20 s.
+
+Step 3 (background jobs) verification:
+
+- Design in [architecture.md](architecture.md#8-background-jobs). BullMQ 6.3.11, pinned.
+  Its optional native add-on (`msgpackr-extract`) has an install script that npm's
+  `allowScripts` blocks; BullMQ works without it.
+- Backend: 9 queue tests against real Redis and an in-process worker. They cover:
+  - an email is queued by the request and sent by the worker, and its job is gone afterwards;
+  - two temporary failures, then success after 3 attempts;
+  - 5 failures, then FAILED with the job removed;
+  - a 550 rejection, which fails at once;
+  - a request that still succeeds when the queue is down;
+  - a duplicate job that does not send twice;
+  - the status constraint;
+  - the delivery history, its tenant isolation and its roles.
+- Every existing test that reads an email now goes through the queue (`lastEmailTo` waits for
+  it to drain). Backend: 201 tests.
+- Sabotage checks, each caught by a test: no retries; permanent errors retried; already sent
+  emails sent again; `EmailDelivery` not tenant-scoped. This also showed that simulated
+  failures leaked from one test into the next; the test mailer is now reset between tests.
+- Two resource leaks found: BullMQ does not close Redis connections it is given (now closed
+  by their owner), and a health test never closed its second app. Both kept the test
+  process from exiting.
+- Frontend: 5 tests for the Email log page (statuses in words, failure reasons, filter,
+  empty state, owner-only access).
+- E2E: all 13 Playwright tests send their emails through the queue to Mailpit, and
+  `emails.spec.js` checks the invitation in the inbox and in the Email log. The standalone
+  worker process (`npm run worker`) was also tested by hand against the dev API and Mailpit.
 
 ## Phase 6: Billing and production readiness
 

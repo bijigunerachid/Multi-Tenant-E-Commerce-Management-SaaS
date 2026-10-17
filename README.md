@@ -7,7 +7,8 @@ with strict tenant isolation and role-based access.
 > **Status:** Phase 5 in progress. Accounts, organizations, team invitations, roles, tenant
 > isolation, the product catalog, inventory, customers and orders (draft to delivery, with stock
 > reservations) work end to end. The dashboard shows revenue, orders and stock alerts, and
-> sales, product and store reports export as CSV. Next: background jobs and notifications. See
+> sales, product and store reports export as CSV. Emails go through a queue with retries and a
+> delivery log. Next: notifications. See
 > [docs/roadmap.md](docs/roadmap.md).
 
 ## Design documents
@@ -22,7 +23,7 @@ with strict tenant isolation and role-based access.
 | Layer    | Technology                                                                           |
 | -------- | ------------------------------------------------------------------------------------ |
 | Frontend | React 19, Vite 7, Tailwind CSS 4, React Router 7, TanStack Query 5, Axios, Heroicons |
-| Backend  | Node.js 22, Express 5, Prisma 6, Zod 4, pino                                         |
+| Backend  | Node.js 22, Express 5, Prisma 6, Zod 4, BullMQ 6, pino                               |
 | Data     | PostgreSQL 17, Redis 7.4                                                             |
 | Tests    | Jest 30 + Supertest (API), Vitest 4 + React Testing Library (UI), Playwright (E2E)   |
 | Tooling  | npm workspaces, ESLint 9, Prettier, Docker Compose, GitHub Actions                   |
@@ -48,7 +49,7 @@ docker compose up -d --wait
 npm ci
 npm run db:deploy -w backend        # applies migrations to the dev database
 
-# 4. API on http://localhost:4100 and the web app on http://localhost:5173
+# 4. API on http://localhost:4100, the email worker, and the web app on http://localhost:5173
 npm run dev
 ```
 
