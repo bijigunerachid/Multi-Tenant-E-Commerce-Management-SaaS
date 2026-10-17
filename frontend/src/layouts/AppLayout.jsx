@@ -28,7 +28,12 @@ import { ROLE_LABELS } from '../lib/roles.js';
 
 // Navigation lists only pages that exist. Later steps add inventory, customers, orders, etc.
 const NAV = [
-  { to: '/', label: 'Overview', icon: HomeIcon, end: true },
+  {
+    to: '/',
+    label: (permissions) => (permissions.includes('report:read') ? 'Dashboard' : 'Overview'),
+    icon: HomeIcon,
+    end: true,
+  },
   { to: '/products', label: 'Products', icon: CubeIcon, permission: 'product:read' },
   { to: '/categories', label: 'Categories', icon: TagIcon, permission: 'product:read' },
   { to: '/inventory', label: 'Inventory', icon: ArchiveBoxIcon, permission: 'inventory:read' },
@@ -58,8 +63,12 @@ function useDismiss(open, setOpen) {
 function SidebarNav({ collapsed, permissions, onNavigate }) {
   return (
     <nav aria-label="Main" className="flex-1 space-y-1 px-2 py-4">
-      {NAV.filter((item) => !item.permission || permissions.includes(item.permission)).map(
-        (item) => (
+      {NAV.filter((item) => !item.permission || permissions.includes(item.permission))
+        .map((item) => ({
+          ...item,
+          label: typeof item.label === 'function' ? item.label(permissions) : item.label,
+        }))
+        .map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -77,8 +86,7 @@ function SidebarNav({ collapsed, permissions, onNavigate }) {
             <item.icon aria-hidden="true" className="size-5 shrink-0" />
             <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
           </NavLink>
-        ),
-      )}
+        ))}
     </nav>
   );
 }

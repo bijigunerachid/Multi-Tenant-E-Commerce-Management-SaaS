@@ -265,7 +265,8 @@ describe('customer detail', () => {
     });
     renderRoute('/customers/c1');
 
-    const home = (await screen.findByText('Home')).closest('li');
+    // Anchored on the street: "Home" is also the breadcrumb's first item.
+    const home = (await screen.findByText('12 Rue Atlas', { exact: false })).closest('li');
     expect(within(home).getByText('Default')).toBeInTheDocument();
     expect(within(home).getByText('Morocco', { exact: false })).toBeInTheDocument();
     const office = screen.getByText('Office').closest('li');

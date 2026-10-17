@@ -7,6 +7,7 @@ import { resolveRequestId } from './middleware/requestId.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sessionCookieSettings, sessionMiddleware } from './middleware/session.js';
 import { csrfProtection } from './middleware/csrf.js';
+import { configureRateLimits } from './middleware/rateLimit.js';
 import { mountRoutes } from './utils/routes.js';
 import { createSessionStore } from './modules/auth/sessionStore.js';
 import { healthRouter } from './modules/health/health.routes.js';
@@ -19,6 +20,7 @@ import { categoryRoutes, productRoutes } from './modules/catalog/catalog.routes.
 import { inventoryRoutes } from './modules/inventory/inventory.routes.js';
 import { customerRoutes } from './modules/customers/customers.routes.js';
 import { orderRoutes } from './modules/orders/orders.routes.js';
+import { reportRoutes } from './modules/reports/reports.routes.js';
 
 const MODULES = [
   authRoutes,
@@ -32,6 +34,7 @@ const MODULES = [
   inventoryRoutes,
   customerRoutes,
   orderRoutes,
+  reportRoutes,
 ];
 
 /**
@@ -39,6 +42,7 @@ const MODULES = [
  */
 export function createApp({ env, logger, prisma, redis, mailer, storage }) {
   const app = express();
+  configureRateLimits({ scale: env.RATE_LIMIT_SCALE });
 
   app.disable('x-powered-by');
   // Behind one reverse proxy in production (needed for correct client IPs in rate limiting).

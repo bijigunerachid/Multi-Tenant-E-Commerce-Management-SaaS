@@ -16,9 +16,20 @@ if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.sho
   };
 }
 
-// Pages are lazy-loaded route chunks; the first load of a chunk in a test run can take more
-// than the default 1 s while Vitest transforms it.
-configure({ asyncUtilTimeout: 4000 });
+// jsdom has no ResizeObserver, which Recharts' ResponsiveContainer uses to measure itself.
+// Charts render at zero size in tests; what they show is checked through their table view.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
+// Pages are lazy-loaded route chunks; the first load of a chunk in a full parallel run can take
+// several seconds while Vitest transforms it (the dashboard also pulls in the chart library).
+// Lookups that succeed only wait as long as they need to.
+configure({ asyncUtilTimeout: 10_000 });
 
 afterEach(() => {
   cleanup();

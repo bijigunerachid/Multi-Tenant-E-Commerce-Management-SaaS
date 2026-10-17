@@ -38,8 +38,9 @@ test('a customer is created, given addresses, and exported to CSV', async ({ pag
     await form.getByRole('button', { name: 'Add address' }).click();
     await expect(page.getByText('Address added.')).toBeVisible();
   }
-  const home = page.getByRole('listitem').filter({ hasText: 'Home' });
-  const office = page.getByRole('listitem').filter({ hasText: 'Office' });
+  // Matched on the street: "Home" is also the breadcrumb's first item.
+  const home = page.getByRole('listitem').filter({ hasText: '12 Rue Atlas' });
+  const office = page.getByRole('listitem').filter({ hasText: '1 Bd Zerktouni' });
   await expect(home).toContainText('Default');
   await office.getByRole('button', { name: 'Make default' }).click();
   await expect(office).toContainText('Default');

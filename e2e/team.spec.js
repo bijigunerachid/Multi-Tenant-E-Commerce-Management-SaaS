@@ -40,10 +40,9 @@ test('an owner invites an employee, who gets only the access of their role', asy
   await employeePage.getByLabel('Full name').fill('Omar Idrissi');
   await employeePage.getByLabel('Choose a password').fill(PASSWORD);
   await employeePage.getByRole('button', { name: 'Create account and join' }).click();
-  await expect(
-    employeePage.getByRole('heading', { level: 1, name: 'Sahara Supply' }),
-  ).toBeVisible();
-  await expect(employeePage.getByText('You are signed in as analyst.')).toBeVisible();
+  // Analysts can read reports, so they land on the dashboard of the organization they joined.
+  await expect(employeePage.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(employeePage.getByRole('button', { name: /Sahara Supply\s*Analyst/ })).toBeVisible();
 
   // The analyst has no Employees link and the page explains why if opened directly.
   const nav = employeePage.getByRole('navigation', { name: 'Main' });

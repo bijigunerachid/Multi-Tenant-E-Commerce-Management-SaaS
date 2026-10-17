@@ -21,10 +21,8 @@ import { FullPageSpinner } from '../components/ui/Spinner.jsx';
 // Pages inside the app shell are loaded on demand, one chunk per page, so signing in does not
 // download the whole application.
 const page = (load, name) => async () => ({ Component: (await load())[name] });
-const OverviewPage = page(
-  () => import('../features/organizations/OverviewPage.jsx'),
-  'OverviewPage',
-);
+// Dashboard for report readers, organization overview for everyone else.
+const HomePage = page(() => import('../features/dashboard/HomePage.jsx'), 'HomePage');
 const EmployeesPage = page(() => import('../features/members/EmployeesPage.jsx'), 'EmployeesPage');
 const OrganizationSettingsPage = page(
   () => import('../features/organizations/OrganizationSettingsPage.jsx'),
@@ -101,9 +99,9 @@ export const routes = [
               {
                 path: '/',
                 element: <AppLayout />,
-                handle: { crumb: 'Overview' },
+                handle: { crumb: 'Home' },
                 children: [
-                  { index: true, lazy: OverviewPage },
+                  { index: true, lazy: HomePage },
                   {
                     element: <RequirePermission permission="product:read" />,
                     children: [

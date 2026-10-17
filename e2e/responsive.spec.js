@@ -75,6 +75,8 @@ test('no app page scrolls horizontally on a phone', async ({ page }) => {
   for (const path of paths) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    // Measure with the page's data rendered, not its loading skeleton.
+    await page.waitForLoadState('networkidle');
     const { contentWidth, visibleWidth } = await page.evaluate(() => ({
       contentWidth: document.documentElement.scrollWidth,
       visibleWidth: document.documentElement.clientWidth,

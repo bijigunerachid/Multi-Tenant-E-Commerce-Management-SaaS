@@ -22,6 +22,7 @@ import {
 } from '../../services/organizationService.js';
 import { listMembers } from '../../services/memberService.js';
 import { nameField } from '../auth/schemas.js';
+import { StoresCard } from './StoresCard.jsx';
 import { SESSION_KEY, useApplySession, useHasPermission, useSession } from '../auth/useSession.js';
 
 const settingsSchema = z.object({
@@ -333,6 +334,7 @@ export function OrganizationSettingsPage() {
             <SettingsForm org={org.data} editable={can('org:update')} />
           )}
         </Card>
+        <StoresCard />
         <OwnershipTransferCard />
       </div>
     </>

@@ -126,7 +126,37 @@ Each transition runs in one database transaction and writes `OrderStatusHistory`
 `InventoryMovement` rows. The allowed transitions are a table in
 `modules/orders/orderStateMachine.js`, with unit tests for every pair of states.
 
-## 6. Trust boundaries
+## 6. Dashboard metrics
+
+`GET /reports/dashboard` (`report:read`: owners, managers, analysts) returns the figures
+below for a date range (`days`, or `from`/`to`, at most 366 days; default the last 30 days)
+and the previous period of the same length. The definitions live next to the queries in
+`modules/reports/dashboard.service.js`.
+
+| Metric              | Definition                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| Revenue             | Net sales (subtotal − discount) of `SHIPPED` and `DELIVERED` orders, by ship date. No tax or shipping. |
+| Orders placed       | Orders placed in the period that are not cancelled.                                                    |
+| Average order value | Revenue ÷ orders shipped in the period. Empty when nothing shipped.                                    |
+| Open orders         | Orders in `PENDING`, `CONFIRMED` or `PROCESSING` now.                                                  |
+| Revenue trend       | Revenue per day, or per week when the range is longer than 92 days.                                    |
+| Top products        | The five products with the highest net line sales among shipped orders.                                |
+| Inventory alerts    | Active variants whose stock available across active stores is at or below the threshold.               |
+
+- **Days follow the organization's time zone**, and the calendar is computed in Postgres,
+  including "today". Postgres and Node can ship different tz data: Postgres 17.11 moves
+  Africa/Casablanca to UTC+0 from 2026-09-20 while Node's ICU 2024b keeps UTC+1, so mixing
+  the two would put orders near midnight in the wrong day. Tests use Asia/Kolkata, which has
+  a fixed offset.
+- **One currency.** Figures are in the organization's default currency. Shipped orders in
+  another currency are counted in `otherCurrencyOrders` and the UI says so.
+- **Revenue needs a ship date.** The `orders_shipped_at_check` constraint requires
+  `shipped_at` exactly when the status is `SHIPPED` or `DELIVERED`.
+- **Cache.** Results are cached in Redis for 60 seconds. The key includes a data-version
+  fingerprint (the latest `updated_at` of orders, inventory, products, variants and stores),
+  so a user who ships an order sees it on their next load instead of waiting for the TTL.
+
+## 7. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.
