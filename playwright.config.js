@@ -21,6 +21,11 @@ process.env.E2E_DATABASE_URL = E2E_DATABASE_URL;
 process.env.E2E_REDIS_URL = E2E_REDIS_URL;
 process.env.MAILPIT_URL ??= 'http://127.0.0.1:8025';
 
+// E2E_STRIPE=1 also runs e2e/stripe.spec.js against Stripe test mode: it needs
+// STRIPE_SECRET_KEY (backend/.env) and `stripe listen` forwarding to this API, with its
+// signing secret in STRIPE_WEBHOOK_SECRET. Without it, billing is off and that spec is skipped.
+const STRIPE_E2E = process.env.E2E_STRIPE === '1';
+
 export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/globalSetup.js',
@@ -55,6 +60,7 @@ export default defineConfig({
         SMTP_URL: process.env.E2E_SMTP_URL ?? 'smtp://127.0.0.1:1025',
         // Emails and notifications go through the real queues; the API process runs the worker.
         JOB_WORKER: 'in-process',
+        BILLING_PROVIDER: STRIPE_E2E ? 'stripe' : 'none',
         NOTIFICATION_POLL_MS: '300',
         // The suite signs up more users from one address than the production limits allow.
         RATE_LIMIT_SCALE: '20',

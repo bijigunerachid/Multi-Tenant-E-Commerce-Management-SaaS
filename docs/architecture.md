@@ -307,10 +307,69 @@ created by a migration, so every environment has the same ones:
 - **Who sees what.** The session tells every member the status (for the read-only banner).
   The plan, usage and plan list are on the Billing page (`GET /subscriptions/current`,
   `GET /subscriptions/plans`, `billing:read`, owners only).
-- **Not yet.** Changing plan and paying come with the payment provider (next step). Until
-  then the subscription changes only through the trial expiry.
+- **Paying.** See section 11. A trial, an expired trial and a canceled subscription can all
+  choose a plan; afterwards the subscription changes only through verified webhooks.
 
-## 11. Trust boundaries
+## 11. Payments
+
+Plans are bought through a payment provider behind a small interface
+(`backend/src/services/billing/index.js`): create a customer, open Checkout, open the customer
+portal, verify and parse a webhook, read a subscription or an invoice. The only implementation
+is Stripe (`stripeProvider.js`, SDK 22.6.2, API version `2026-08-26.dahlia`), in test mode in
+every environment but production. With `BILLING_PROVIDER=none` (the default) trials and limits
+work and buying answers `503 BILLING_UNAVAILABLE`.
+
+```
+Owner ──"Choose Scale"──► POST /subscriptions/checkout ──► Stripe Checkout (hosted page)
+                                                             │ card, 3-D Secure, receipt
+Stripe ──signed webhook──► POST /subscriptions/webhooks/stripe
+          ──► WebhookEvent row (unique event id) ──► row lock ──► read the subscription
+              and invoice back from Stripe ──► Subscription + BillingInvoice ──► audit
+Owner ◄── /settings/billing?checkout=success (shows "waiting for Stripe" until it changes)
+```
+
+- **One customer and one subscription per organization.** The Stripe customer is created on
+  the first checkout with an idempotency key per organization, and its id is kept on the
+  subscription. A second checkout is refused (`409 MANAGE_IN_PORTAL`) while a paid
+  subscription is active, past due or trialing: plan changes, card updates, invoices and
+  cancellation go through the Stripe Customer Portal (`POST /subscriptions/portal`).
+- **The trial is kept.** Choosing a plan with more than 49 hours of trial left passes the
+  trial end to Stripe, so the first payment is when the trial would have ended.
+- **Only verified webhooks change anything.** The webhook route is mounted before the session
+  and CSRF middleware and receives the raw body; the signature is checked with the signing
+  secret (`STRIPE_WEBHOOK_SECRET`). A bad or missing signature is a 400 and nothing is stored.
+  The redirect back from Checkout carries no authority: the page only polls the API.
+- **Idempotent and order-independent.** Each event is stored by its Stripe id (unique), then
+  applied in a transaction that locks its row, so duplicate or concurrent deliveries are
+  applied once. The handler takes only ids from the event and reads the subscription and
+  invoice back from the API, so an old event arriving late cannot roll the state back.
+- **Status mapping.** `trialing` → TRIALING, `active` → ACTIVE, `past_due` → PAST_DUE (still
+  usable while Stripe retries), `unpaid`, `canceled`, `paused` → CANCELED (read-only).
+  `incomplete` and `incomplete_expired` change nothing: a failed first payment never
+  activates a plan. The plan comes from the price id, matched against `providerPriceId`.
+- **Guards.** A subscription whose metadata names another organization is ignored. An older
+  subscription ending does not cancel the one that replaced it. Events from the other mode
+  (live vs test) are ignored. Live keys are refused outside production.
+- **Failures.** If applying an event fails (for example the Stripe API is down), the row is
+  marked FAILED with the error and the endpoint answers 500, so Stripe retries; the retry is
+  applied normally.
+- **Billing history.** `invoice.*` events copy the invoice (number, status, amounts in the
+  currency's major unit, period, hosted page and PDF links) into `BillingInvoice`, unique per
+  provider invoice. Owners see them on the Billing page (`GET /subscriptions/invoices`).
+- **Setup.** `npm run stripe:setup -w backend` creates (or updates) one product and one monthly
+  price per plan in the Stripe account, found by lookup key, stores the price ids on the plans,
+  and creates the Customer Portal configuration. A price change creates a new price that takes
+  over the lookup key; existing subscribers keep theirs. `npm run stripe:listen -w backend`
+  forwards test webhooks to the local API and prints the signing secret.
+- **Keys.** A restricted key (`rk_test_...`) is recommended over the secret key. The API needs
+  write access to Customers, Checkout Sessions and Customer Portal sessions, and read access to
+  Subscriptions, Invoices and Customer Portal configurations; `stripe:setup` also needs write
+  access to Products, Prices and Customer Portal configurations.
+- **Tests.** Backend tests use a stand-in Stripe client but sign webhooks with the real SDK and
+  the provider's real verification. `e2e/stripe.spec.js` runs a real test-mode Checkout and
+  the Customer Portal when `E2E_STRIPE=1` (see `playwright.config.js`).
+
+## 12. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.
@@ -324,7 +383,8 @@ created by a migration, so every environment has the same ones:
    the filter is written out in each query, as in raw SQL).
 4. **Stripe → webhook.** The signature is verified against the raw body, the event ID is
    stored with a unique constraint (idempotency), and subscription state changes only from
-   verified events, never from a browser redirect.
+   verified events, never from a browser redirect. Beyond its ids, nothing in an event is
+   trusted: the subscription and invoice are read back from the Stripe API.
 5. **Uploads.** The type is checked by magic bytes (not the extension or the client's MIME
    type), the size is capped, the file is stored under a random key outside the web root,
    and it is served with `Content-Type` set and `X-Content-Type-Options: nosniff`.

@@ -23,7 +23,7 @@ import { orderRoutes } from './modules/orders/orders.routes.js';
 import { reportRoutes } from './modules/reports/reports.routes.js';
 import { emailRoutes } from './modules/emails/emails.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
-import { subscriptionRoutes } from './modules/billing/billing.routes.js';
+import { billingWebhookRouter, subscriptionRoutes } from './modules/billing/billing.routes.js';
 
 const MODULES = [
   authRoutes,
@@ -46,7 +46,7 @@ const MODULES = [
 /**
  * Builds the Express application. Dependencies are passed in so tests can supply their own.
  */
-export function createApp({ env, logger, prisma, redis, emails, storage }) {
+export function createApp({ env, logger, prisma, redis, emails, storage, billing = null }) {
   const app = express();
   configureRateLimits({ scale: env.RATE_LIMIT_SCALE });
 
@@ -69,6 +69,8 @@ export function createApp({ env, logger, prisma, redis, emails, storage }) {
       exposedHeaders: ['X-Request-Id'],
     }),
   );
+  // Payment webhooks are signed over the exact bytes sent, so they keep their raw body.
+  app.use('/api/v1/subscriptions/webhooks', express.raw({ type: () => true, limit: '1mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
@@ -77,10 +79,12 @@ export function createApp({ env, logger, prisma, redis, emails, storage }) {
     idleSeconds: env.SESSION_IDLE_MINUTES * 60,
     absoluteSeconds: env.SESSION_ABSOLUTE_DAYS * 24 * 60 * 60,
   });
-  const deps = { env, logger, prisma, redis, emails, storage, sessionStore };
+  const deps = { env, logger, prisma, redis, emails, storage, sessionStore, billing };
 
   const api = express.Router();
   api.use('/health', healthRouter({ prisma, redis }));
+  // Authenticated by signature, not by session: mounted before the session and CSRF checks.
+  api.use('/subscriptions/webhooks', billingWebhookRouter(deps));
   api.use(sessionMiddleware({ sessionStore, ...sessionCookieSettings(env) }));
   api.use(csrfProtection({ allowedOrigins: env.CORS_ORIGINS }));
 

@@ -33,6 +33,14 @@ export default async function globalSetup() {
     },
   );
 
+  // Live Stripe run: put the plans on sale in this database too (idempotent in Stripe).
+  if (process.env.E2E_STRIPE === '1') {
+    execFileSync(process.execPath, ['backend/src/scripts/stripeSetup.js'], {
+      env,
+      stdio: 'pipe',
+    });
+  }
+
   const redis = new Redis(process.env.E2E_REDIS_URL);
   await redis.flushdb();
   await redis.quit();

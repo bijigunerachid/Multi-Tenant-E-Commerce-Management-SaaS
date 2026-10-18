@@ -46,7 +46,7 @@ export function NotificationItem({ notification, onOpen, compact = false }) {
             className={`break-words text-sm ${unread ? 'font-semibold text-slate-900' : 'text-slate-700'}`}
           >
             {title}
-            {unread && <span className="sr-only"> (unread)</span>}
+            {unread && <span className="sr-only">, unread</span>}
           </span>
           <time dateTime={notification.createdAt} className="shrink-0 text-xs text-slate-500">
             {timeAgo(notification.createdAt)}

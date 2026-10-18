@@ -4,8 +4,9 @@ A multi-tenant e-commerce management SaaS: independent businesses manage their s
 products, inventory, orders, employees, customers and analytics on one shared platform,
 with strict tenant isolation and role-based access.
 
-> **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits and read-only mode
-> work; payments are next. (CSV exports as background jobs were deferred from Phase 5.)
+> **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits, read-only mode and
+> Stripe payments (Checkout, Customer Portal, webhooks, invoices) work; platform
+> administration is next. (CSV exports as background jobs were deferred from Phase 5.)
 > Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
 > catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
 > end to end. The dashboard shows revenue, orders and stock alerts, and
@@ -64,6 +65,21 @@ npm run dev
 | PostgreSQL                        | localhost:5434                                                                         |
 | Redis                             | localhost:6380                                                                         |
 
+### Payments (optional, Stripe test mode)
+
+Without this, trials and plan limits work but plans cannot be bought.
+
+```powershell
+winget install --id Stripe.StripeCLI    # once; then `stripe login`
+# In backend\.env: BILLING_PROVIDER=stripe and STRIPE_SECRET_KEY=rk_test_... (or sk_test_...)
+npm run stripe:setup -w backend         # creates the plans' prices in your Stripe account
+npm run stripe:listen -w backend        # forwards webhooks; copy the whsec_ secret it prints
+# In backend\.env: STRIPE_WEBHOOK_SECRET=whsec_..., then restart `npm run dev`
+```
+
+Pay with the test card 4242 4242 4242 4242, any future date and any CVC. Keep
+`stripe:listen` running while you test: plans change only when its webhooks arrive.
+
 ## Checks
 
 ```powershell
@@ -75,6 +91,10 @@ npm run build           # production build of the web app
 npx playwright install chromium   # once, before the first E2E run
 npm run test:e2e        # starts its own API (4101) and web app (5174), uses Mailpit
 ```
+
+`e2e/stripe.spec.js` pays for a plan with real Stripe Checkout in test mode. It is skipped
+unless `E2E_STRIPE=1`, with `stripe listen --forward-to localhost:4101/api/v1/subscriptions/webhooks/stripe`
+running and its secret in `STRIPE_WEBHOOK_SECRET`.
 
 Tests never touch development data: backend tests use the `vendora_test` database and
 Redis database 1; E2E tests use `vendora_e2e` and Redis database 2. Both databases are

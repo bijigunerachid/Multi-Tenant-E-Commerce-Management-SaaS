@@ -76,14 +76,14 @@ describe('notification bell', () => {
     await userEvent.click(await bell());
     const panel = await screen.findByRole('dialog', { name: 'Notifications' });
     const order = await within(panel).findByRole('link', { name: /New order #1042/ });
-    expect(order).toHaveTextContent('(unread)');
+    expect(order).toHaveAccessibleName(/^New order #1042, unread/);
     // The currency symbol depends on the locale ("$" or "US$").
     expect(order).toHaveTextContent(/3 items, \S*300\.00 · Main store/);
     expect(order).toHaveTextContent('2 minutes ago');
     expect(order).toHaveAttribute('href', '/orders/order-1');
 
     const stock = within(panel).getByRole('link', { name: /Low stock: SHIRT-M/ });
-    expect(stock).not.toHaveTextContent('(unread)');
+    expect(stock).not.toHaveAccessibleName(/unread/);
     expect(stock).toHaveAttribute('href', '/inventory?storeId=store-1&search=SHIRT-M');
     expect(notificationService.listNotifications).toHaveBeenCalledWith({ pageSize: 6 });
   });

@@ -9,6 +9,7 @@ import { createNotificationWorker } from './jobs/notifications.js';
 import { createSubscriptionWorker } from './jobs/subscriptions.js';
 import { createLocalStorage } from './services/storage.js';
 import { createApp } from './app.js';
+import { createBillingProvider } from './services/billing/index.js';
 
 const env = loadEnv();
 const logger = createLogger({ level: env.LOG_LEVEL });
@@ -28,7 +29,8 @@ await Promise.all([prisma.$connect(), redis.connect(), emails.queue.waitUntilRea
 await notifications?.start();
 subscriptions?.start();
 
-const app = createApp({ env, logger, prisma, redis, emails, storage });
+const billing = createBillingProvider({ env });
+const app = createApp({ env, logger, prisma, redis, emails, storage, billing });
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV, jobWorker: env.JOB_WORKER }, 'API listening');
 });

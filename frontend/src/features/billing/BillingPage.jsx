@@ -1,10 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { CheckIcon, MinusIcon } from '@heroicons/react/20/solid';
 import { Alert, Badge, Card, PageHeader, SkeletonRows } from '../../components/ui/layout.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { Pagination } from '../../components/ui/Pagination.jsx';
+import { useToast } from '../../components/ui/Toast.jsx';
+import { goToExternal } from '../../lib/navigation.js';
 import { getApiError } from '../../lib/apiClient.js';
 import { formatDate, formatMoney } from '../../lib/format.js';
-import { getSubscription, listPlans } from '../../services/billingService.js';
+import {
+  getSubscription,
+  listInvoices,
+  listPlans,
+  openBillingPortal,
+  startCheckout,
+} from '../../services/billingService.js';
 import { useSession } from '../auth/useSession.js';
 import {
   FEATURE_LABELS,
@@ -23,7 +34,7 @@ function Meter({ label, used, limit }) {
         <span className="font-medium text-slate-800">{label}</span>
         <span className={full ? 'font-medium text-red-700' : 'text-slate-600'}>
           {used.toLocaleString()} of {limit.toLocaleString()}
-          {full && <span className="sr-only"> (limit reached)</span>}
+          {full && <span className="sr-only">, limit reached</span>}
         </span>
       </div>
       <div
@@ -68,7 +79,7 @@ function StatusLine({ subscription: s }) {
   ) : null;
 }
 
-function PlanCard({ plan, current }) {
+function PlanCard({ plan, current, action }) {
   return (
     <li
       className={`flex flex-col rounded-lg p-4 ring-1 ${current ? 'bg-indigo-50/60 ring-2 ring-indigo-600' : 'ring-slate-200'}`}
@@ -101,18 +112,176 @@ function PlanCard({ plan, current }) {
           </li>
         ))}
       </ul>
+      {action && <div className="mt-auto pt-4">{action}</div>}
     </li>
   );
+}
+
+const INVOICE_STATUS = {
+  paid: { label: 'Paid', tone: 'success' },
+  open: { label: 'Due', tone: 'warning' },
+  uncollectible: { label: 'Unpaid', tone: 'danger' },
+  void: { label: 'Void', tone: 'neutral' },
+  draft: { label: 'Draft', tone: 'neutral' },
+};
+const INVOICE_PAGE_SIZE = 12;
+
+function InvoicesCard({ organizationId }) {
+  const [page, setPage] = useState(1);
+  const query = { page, pageSize: INVOICE_PAGE_SIZE };
+  const invoices = useQuery({
+    queryKey: ['subscription', organizationId, 'invoices', query],
+    queryFn: () => listInvoices(query),
+    placeholderData: keepPreviousData,
+  });
+  return (
+    <Card title="Invoices" description="Invoices from Vendora for your plan.">
+      {invoices.isPending ? (
+        <SkeletonRows rows={2} label="Loading invoices" />
+      ) : invoices.isError ? (
+        <Alert tone="error">{getApiError(invoices.error).message}</Alert>
+      ) : invoices.data.data.length === 0 ? (
+        <p className="text-sm text-slate-600">No invoices yet.</p>
+      ) : (
+        <div className="space-y-4">
+          <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+            {invoices.data.data.map((inv) => {
+              const status = INVOICE_STATUS[inv.status] ?? { label: inv.status, tone: 'neutral' };
+              return (
+                <li
+                  key={inv.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-medium text-slate-900">
+                      {formatDate(inv.issuedAt)}
+                      {inv.number && (
+                        <span className="font-normal text-slate-500"> · {inv.number}</span>
+                      )}
+                    </span>
+                    {inv.periodStart && (
+                      <span className="block text-xs text-slate-500">
+                        {formatDate(inv.periodStart)} – {formatDate(inv.periodEnd)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-3">
+                    <span className="font-medium text-slate-900">
+                      {formatMoney(inv.amountDue, inv.currency)}
+                    </span>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                    {inv.hostedInvoiceUrl && (
+                      <a
+                        href={inv.hostedInvoiceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        // A hidden text span loses its leading space in the accessible name.
+                        aria-label={`View invoice ${inv.number ?? formatDate(inv.issuedAt)}`}
+                        className="font-medium text-indigo-600 hover:text-indigo-500"
+                      >
+                        View
+                      </a>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <Pagination
+            page={page}
+            pageSize={INVOICE_PAGE_SIZE}
+            total={invoices.data.meta.total}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// After Checkout, Stripe's webhook may arrive a moment after the browser: the page checks
+// every 2 s for up to a minute. The redirect itself proves nothing and changes nothing.
+const CONFIRM_POLL_MS = 2_000;
+const CONFIRM_TIMEOUT_MS = 60_000;
+
+function DismissButton({ onClick }) {
+  return (
+    <Button size="sm" variant="ghost" onClick={onClick}>
+      Dismiss
+    </Button>
+  );
+}
+
+function CheckoutResult({ result, confirmed, onDismiss }) {
+  if (result === 'canceled') {
+    return (
+      <Alert tone="info" action={<DismissButton onClick={onDismiss} />}>
+        Checkout was canceled. Nothing was charged.
+      </Alert>
+    );
+  }
+  if (result !== 'success') return null;
+  return confirmed ? (
+    <Alert tone="success" action={<DismissButton onClick={onDismiss} />}>
+      Your plan is active. Thank you!
+    </Alert>
+  ) : (
+    <Alert tone="info">
+      Stripe received your payment details. Your plan updates here as soon as Stripe confirms the
+      subscription, usually within a few seconds.
+    </Alert>
+  );
+}
+
+function plansDescription(sub) {
+  const prices = 'Prices are in US dollars, per month.';
+  if (!sub) return prices;
+  if (!sub.billingEnabled) return `${prices} Online payment is not set up on this server yet.`;
+  if (sub.billedByProvider) {
+    return `${prices} Change plan, update the card or cancel from "Manage billing".`;
+  }
+  if (sub.status === 'TRIALING') {
+    return `${prices} Choosing a plan now keeps the rest of your trial: the first payment is due when it ends.`;
+  }
+  return prices;
 }
 
 export function BillingPage() {
   const { data: session } = useSession();
   const organizationId = session.activeOrganization.id;
+  const canManage = session.activeOrganization.permissions.includes('billing:manage');
+  const toast = useToast();
+  const [params, setParams] = useSearchParams();
+  const checkoutResult = params.get('checkout');
+  const [waitingSince] = useState(() => Date.now());
+
   const subscription = useQuery({
     queryKey: ['subscription', organizationId],
     queryFn: getSubscription,
+    refetchInterval: (q) =>
+      checkoutResult === 'success' &&
+      !q.state.data?.billedByProvider &&
+      Date.now() - waitingSince < CONFIRM_TIMEOUT_MS
+        ? CONFIRM_POLL_MS
+        : false,
   });
   const plans = useQuery({ queryKey: ['plans'], queryFn: listPlans, staleTime: 60 * 60_000 });
+  // Both leave the app for a Stripe page; the button stays busy until the browser has left.
+  const leave = {
+    onSuccess: ({ url }) => goToExternal(url),
+    onError: (e) => toast.error(getApiError(e).message),
+  };
+  const checkout = useMutation({ mutationFn: (plan) => startCheckout(plan), ...leave });
+  const portal = useMutation({ mutationFn: () => openBillingPortal(), ...leave });
+
+  const sub = subscription.data;
+  const busy = checkout.isPending || portal.isPending || checkout.isSuccess || portal.isSuccess;
+  const canBuy = canManage && sub?.billingEnabled && !sub.billedByProvider;
+  const dismissResult = () => {
+    const next = new URLSearchParams(params);
+    next.delete('checkout');
+    setParams(next, { replace: true });
+  };
 
   const retry = (query) => (
     <Button size="sm" variant="secondary" onClick={() => query.refetch()}>
@@ -125,8 +294,27 @@ export function BillingPage() {
       <PageHeader
         title="Billing"
         description="Your plan, what it includes, and how much of it you use."
+        actions={
+          canManage &&
+          sub?.billingEnabled &&
+          sub.hasBillingAccount && (
+            <Button
+              variant="secondary"
+              loading={portal.isPending}
+              disabled={busy}
+              onClick={() => portal.mutate()}
+            >
+              Manage billing
+            </Button>
+          )
+        }
       />
       <div className="space-y-6">
+        <CheckoutResult
+          result={checkoutResult}
+          confirmed={Boolean(sub?.billedByProvider)}
+          onDismiss={dismissResult}
+        />
         <Card title="Current plan">
           {subscription.isPending ? (
             <SkeletonRows rows={3} label="Loading your plan" />
@@ -138,23 +326,23 @@ export function BillingPage() {
             <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
               <div>
                 <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
-                  {subscription.data.plan?.name ?? 'No plan'}
-                  <Badge tone={STATUS_LABELS[subscription.data.status].tone}>
-                    {STATUS_LABELS[subscription.data.status].label}
+                  {sub.plan?.name ?? 'No plan'}
+                  <Badge tone={STATUS_LABELS[sub.status].tone}>
+                    {STATUS_LABELS[sub.status].label}
                   </Badge>
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  <StatusLine subscription={subscription.data} />
+                  <StatusLine subscription={sub} />
                 </p>
               </div>
-              {subscription.data.plan && (
+              {sub.plan && (
                 <div className="space-y-4">
                   {Object.entries(RESOURCE_LABELS).map(([key, label]) => (
                     <Meter
                       key={key}
                       label={label}
-                      used={subscription.data.usage[key]}
-                      limit={subscription.data.plan.limits[key]}
+                      used={sub.usage[key]}
+                      limit={sub.plan.limits[key]}
                     />
                   ))}
                   <p className="text-xs text-slate-500">
@@ -166,7 +354,7 @@ export function BillingPage() {
           )}
         </Card>
 
-        <Card title="Plans" description="Prices are in US dollars, per month.">
+        <Card title="Plans" description={plansDescription(sub)}>
           {plans.isPending ? (
             <SkeletonRows rows={3} label="Loading plans" />
           ) : plans.isError ? (
@@ -179,12 +367,28 @@ export function BillingPage() {
                 <PlanCard
                   key={plan.code}
                   plan={plan}
-                  current={plan.code === subscription.data?.plan?.code}
+                  current={plan.code === sub?.plan?.code}
+                  action={
+                    canBuy &&
+                    plan.onSale && (
+                      <Button
+                        className="w-full"
+                        variant={plan.code === sub?.plan?.code ? 'primary' : 'secondary'}
+                        loading={checkout.isPending && checkout.variables === plan.code}
+                        disabled={busy}
+                        onClick={() => checkout.mutate(plan.code)}
+                      >
+                        Choose {plan.name}
+                      </Button>
+                    )
+                  }
                 />
               ))}
             </ul>
           )}
         </Card>
+
+        {sub?.hasBillingAccount && <InvoicesCard organizationId={organizationId} />}
       </div>
     </>
   );
