@@ -23,6 +23,7 @@ import { PERMISSIONS } from '../modules/auth/permissions.js';
  *     afterAuth: [middleware...],      // optional, runs after authorization (req.ctx is set)
  *     validate: { params, query, body }, // Zod schemas, optional
  *     status: 201,                      // optional success status (default 200)
+ *     summary: 'Create a product',      // optional, shown in the OpenAPI document
  *     handler: async (req, res) => data // returned value is sent as { data }; undefined → 204
  *   }
  *
@@ -75,6 +76,10 @@ export function mountRoutes({ basePath, routes, deps, routeTable }) {
       access: def.access,
       whenInactive: def.whenInactive ?? null,
       feature: def.feature ?? null,
+      // For the OpenAPI document (src/utils/openapi.js).
+      validate: def.validate ?? null,
+      status: def.status ?? null,
+      summary: def.summary ?? null,
     });
   }
   return router;

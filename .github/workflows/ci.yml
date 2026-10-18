@@ -124,3 +124,60 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the whole history, not just the last commit
+      - name: Scan every commit for secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0
+          git /repo --config /repo/.gitleaks.toml --redact --no-banner
+
+  production-stack:
+    # Builds the production images and runs docker-compose.prod.yml as a server would, then
+    # checks it from outside with the smoke tests (npm run smoke).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Settings for a throwaway stack on localhost
+        run: |
+          cp .env.production.example .env.production
+          sed -i \
+            -e 's#^SITE_ADDRESS=.*#SITE_ADDRESS=localhost#' \
+            -e 's#^APP_URL=.*#APP_URL=https://localhost:8443#' \
+            -e 's#^CORS_ORIGINS=.*#CORS_ORIGINS=https://localhost:8443#' \
+            -e "s#^POSTGRES_PASSWORD=.*#POSTGRES_PASSWORD=$(openssl rand -hex 24)#" \
+            -e "s#^REDIS_PASSWORD=.*#REDIS_PASSWORD=$(openssl rand -hex 24)#" \
+            -e 's#^SMTP_URL=.*#SMTP_URL=smtp://localhost:2525#' \
+            .env.production
+          printf 'HTTP_PORT=8080\nHTTPS_PORT=8443\n' >> .env.production
+      - name: The production Compose file is valid
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production config --quiet
+      - name: Build and start
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+      - name: Wait until ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -skf https://localhost:8443/api/v1/health/ready; then exit 0; fi
+            sleep 2
+          done
+          docker compose -f docker-compose.prod.yml --env-file .env.production ps -a
+          docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail 100
+          exit 1
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Smoke tests against the running stack
+        run: npm run smoke
+        env:
+          SMOKE_URL: https://localhost:8443
+          SMOKE_INSECURE: '1'
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail 200

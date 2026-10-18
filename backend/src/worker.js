@@ -1,3 +1,6 @@
+import { writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { loadEnv } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { createPrismaClient } from './config/database.js';
@@ -27,6 +30,17 @@ logger.info(
   { transport: env.MAIL_TRANSPORT, notificationPollMs: env.NOTIFICATION_POLL_MS },
   'Worker started',
 );
+
+// Heartbeat for container health checks (docker-compose.prod.yml): the file's age tells whether
+// this process is still alive and its event loop not stuck.
+const HEARTBEAT_FILE = path.join(os.tmpdir(), 'vendora-worker-heartbeat');
+const beat = () =>
+  writeFile(HEARTBEAT_FILE, new Date().toISOString()).catch((err) =>
+    logger.warn({ err }, 'Could not write the worker heartbeat'),
+  );
+await beat();
+const heartbeat = setInterval(beat, 30_000);
+heartbeat.unref();
 
 let shuttingDown = false;
 async function shutdown(signal) {

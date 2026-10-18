@@ -1,0 +1,47 @@
+# Vendora's public web server.
+# - SITE_ADDRESS: your domain (for example app.example.com). Caddy obtains and renews its HTTPS
+#   certificate automatically once the domain points at this server. "localhost" uses a local
+#   certificate for testing the production setup on your own machine.
+{
+	# No admin API: the configuration only changes by rebuilding the image.
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# The API, including the Stripe webhook. Caddy adds X-Forwarded-For/-Proto; the API trusts
+	# exactly one proxy in production, so client IPs and rate limits are right.
+	handle /api/* {
+		reverse_proxy api:4100
+	}
+
+	# The web app: hashed assets are cached for a year, index.html never, and every other
+	# path falls back to index.html (the app routes in the browser).
+	handle {
+		root * /srv
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html path / /index.html
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Everything the app loads comes from this origin. Inline style attributes are allowed
+		# (charts and progress bars set widths); inline scripts are not.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

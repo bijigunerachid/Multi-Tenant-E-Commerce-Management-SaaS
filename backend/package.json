@@ -15,7 +15,9 @@
     "db:studio": "prisma studio",
     "stripe:setup": "node --env-file-if-exists=.env src/scripts/stripeSetup.js",
     "stripe:listen": "stripe listen --forward-to localhost:4100/api/v1/subscriptions/webhooks/stripe --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,invoice.finalized,invoice.paid,invoice.payment_failed,invoice.voided,invoice.marked_uncollectible",
-    "admin": "node --env-file-if-exists=.env src/scripts/platformAdmin.js"
+    "admin": "node --env-file-if-exists=.env src/scripts/platformAdmin.js",
+    "openapi": "node src/scripts/openapi.js",
+    "db:seed": "node --env-file-if-exists=.env src/scripts/seed.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -30,12 +32,12 @@
     "nodemailer": "10.1.1",
     "pino": "9.14.0",
     "pino-http": "10.5.0",
+    "prisma": "6.19.3",
     "stripe": "22.6.2",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "jest": "30.5.2",
-    "prisma": "6.19.3",
     "supertest": "7.3.1"
   }
 }

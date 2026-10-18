@@ -96,8 +96,22 @@ export function loadEnv(source = process.env) {
       'Invalid environment configuration:\n  STRIPE_SECRET_KEY: live keys are only accepted in production',
     );
   }
-  if (env.NODE_ENV === 'production' && !env.APP_URL.startsWith('https://')) {
-    throw new Error('Invalid environment configuration:\n  APP_URL: must use https in production');
+  if (env.NODE_ENV === 'production') {
+    // Settings that work in development but are wrong for real users.
+    const problems = [];
+    if (!env.APP_URL.startsWith('https://')) problems.push('APP_URL: must use https in production');
+    if (!env.CORS_ORIGINS.includes(new URL(env.APP_URL).origin)) {
+      problems.push('CORS_ORIGINS: must include the origin of APP_URL');
+    }
+    if (env.MAIL_TRANSPORT !== 'smtp') {
+      problems.push('MAIL_TRANSPORT: must be smtp in production (emails would never be sent)');
+    }
+    if (!source.SMTP_URL) {
+      problems.push('SMTP_URL: set your mail provider (the default is a local test inbox)');
+    }
+    if (problems.length) {
+      throw new Error(`Invalid environment configuration:\n  ${problems.join('\n  ')}`);
+    }
   }
   return Object.freeze(env);
 }
