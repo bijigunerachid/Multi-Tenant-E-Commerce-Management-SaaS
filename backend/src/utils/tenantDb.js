@@ -31,6 +31,8 @@ export const TENANT_MODELS = new Set([
   'EmailDelivery',
   'NotificationEvent',
   'Notification',
+  'Subscription',
+  'BillingInvoice',
 ]);
 
 const WHERE_OPERATIONS = new Set([

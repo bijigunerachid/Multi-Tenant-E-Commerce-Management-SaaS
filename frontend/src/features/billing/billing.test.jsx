@@ -6,13 +6,22 @@ import * as authService from '../../services/authService.js';
 import * as billingService from '../../services/billingService.js';
 import * as orgService from '../../services/organizationService.js';
 import * as memberService from '../../services/memberService.js';
+import * as navigation from '../../lib/navigation.js';
 
 vi.mock('../../services/authService.js');
 vi.mock('../../services/billingService.js');
 vi.mock('../../services/organizationService.js');
 vi.mock('../../services/memberService.js');
+vi.mock('../../lib/navigation.js');
 
-const OWNER = ['org:read', 'org:update', 'member:read', 'member:manage', 'billing:read'];
+const OWNER = [
+  'org:read',
+  'org:update',
+  'member:read',
+  'member:manage',
+  'billing:read',
+  'billing:manage',
+];
 const inDays = (days) => new Date(Date.now() + days * 86_400_000).toISOString();
 const PLANS = [
   ['starter', 'Starter', '29.00', { stores: 1, members: 3, products: 100 }, false],
@@ -25,6 +34,7 @@ const PLANS = [
   currency: 'USD',
   limits,
   features: { csvExport },
+  onSale: true,
 }));
 const STORE = {
   id: 's1',
@@ -59,6 +69,13 @@ beforeEach(() => {
     currentPeriodEnd: null,
     cancelAtPeriodEnd: false,
     usage: { stores: 3, members: 8, products: 120 },
+    billingEnabled: true,
+    hasBillingAccount: false,
+    billedByProvider: false,
+  });
+  vi.mocked(billingService.listInvoices).mockResolvedValue({
+    data: [],
+    meta: { page: 1, pageSize: 12, total: 0 },
   });
   vi.mocked(orgService.listStores).mockResolvedValue([STORE]);
   vi.mocked(orgService.getCurrentOrganization).mockResolvedValue({
@@ -87,7 +104,7 @@ describe('billing page', () => {
     const stores = screen.getByRole('meter', { name: 'Active stores' });
     expect(stores).toHaveAttribute('aria-valuenow', '3');
     expect(stores).toHaveAttribute('aria-valuemax', '3');
-    expect(screen.getByText('3 of 3')).toHaveTextContent('(limit reached)');
+    expect(screen.getByText(/^3 of 3/)).toHaveTextContent('3 of 3, limit reached');
     expect(screen.getByText('8 of 10')).toBeVisible();
     // Thousands are grouped as on the plan cards (the separator depends on the locale).
     expect(screen.getByText(/^120 of 1\D?000$/)).toBeVisible();
@@ -113,6 +130,118 @@ describe('billing page', () => {
     expect(await screen.findByText('You do not have access to this page')).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Billing' })).not.toBeInTheDocument();
     expect(billingService.getSubscription).not.toHaveBeenCalled();
+  });
+});
+
+describe('buying and managing a plan', () => {
+  const subscribed = (overrides = {}) =>
+    vi.mocked(billingService.getSubscription).mockResolvedValue({
+      status: 'ACTIVE',
+      usable: true,
+      plan: PLANS[2],
+      trialEndsAt: null,
+      currentPeriodEnd: inDays(20),
+      cancelAtPeriodEnd: false,
+      usage: { stores: 1, members: 2, products: 3 },
+      billingEnabled: true,
+      hasBillingAccount: true,
+      billedByProvider: true,
+      ...overrides,
+    });
+
+  test('choosing a plan sends the owner to Stripe Checkout', async () => {
+    vi.mocked(billingService.startCheckout).mockResolvedValue({
+      url: 'https://checkout.stripe.com/c/pay/cs_test_1',
+    });
+    renderRoute('/settings/billing');
+    expect(await screen.findByText(/keeps the rest of your trial/)).toBeVisible();
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Scale' }));
+    expect(billingService.startCheckout).toHaveBeenCalledWith('scale');
+    await waitFor(() =>
+      expect(navigation.goToExternal).toHaveBeenCalledWith(
+        'https://checkout.stripe.com/c/pay/cs_test_1',
+      ),
+    );
+    // Every plan button stays disabled while the browser leaves, so nothing is bought twice.
+    expect(screen.getByRole('button', { name: 'Choose Starter' })).toBeDisabled();
+  });
+
+  test('a paying organization manages its plan in the Customer Portal, and sees invoices', async () => {
+    subscribed();
+    vi.mocked(billingService.openBillingPortal).mockResolvedValue({
+      url: 'https://billing.stripe.com/p/session/test_1',
+    });
+    vi.mocked(billingService.listInvoices).mockResolvedValue({
+      data: [
+        {
+          id: 'inv-1',
+          number: 'VEN-0001',
+          status: 'paid',
+          currency: 'USD',
+          amountDue: '199.00',
+          amountPaid: '199.00',
+          periodStart: '2026-10-01T00:00:00Z',
+          periodEnd: '2026-11-01T00:00:00Z',
+          hostedInvoiceUrl: 'https://invoice.stripe.com/i/test',
+          invoicePdfUrl: null,
+          issuedAt: '2026-10-01T00:00:00Z',
+        },
+      ],
+      meta: { page: 1, pageSize: 12, total: 1 },
+    });
+    renderRoute('/settings/billing');
+    expect(await screen.findByText(/Renews on/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Choose/ })).not.toBeInTheDocument();
+
+    const link = await screen.findByRole('link', { name: 'View invoice VEN-0001' });
+    const invoice = link.closest('li');
+    expect(invoice).toHaveTextContent(/199\.00/);
+    expect(within(invoice).getByText('Paid')).toBeVisible();
+    expect(link).toHaveAttribute('href', 'https://invoice.stripe.com/i/test');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Manage billing' }));
+    await waitFor(() =>
+      expect(navigation.goToExternal).toHaveBeenCalledWith(
+        'https://billing.stripe.com/p/session/test_1',
+      ),
+    );
+  });
+
+  test('coming back from Checkout waits for Stripe to confirm before saying the plan is active', async () => {
+    vi.mocked(billingService.getSubscription)
+      .mockResolvedValueOnce({
+        ...(await billingService.getSubscription()),
+        hasBillingAccount: true,
+      })
+      .mockResolvedValue({
+        ...(await billingService.getSubscription()),
+        status: 'TRIALING',
+        hasBillingAccount: true,
+        billedByProvider: true,
+      });
+    const { router } = renderRoute('/settings/billing?checkout=success');
+    expect(await screen.findByText(/Stripe received your payment details/)).toBeVisible();
+    expect(
+      await screen.findByText('Your plan is active. Thank you!', {}, { timeout: 6000 }),
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(router.state.location.search).toBe('');
+  });
+
+  test('a canceled checkout says nothing was charged', async () => {
+    renderRoute('/settings/billing?checkout=canceled');
+    expect(await screen.findByText('Checkout was canceled. Nothing was charged.')).toBeVisible();
+  });
+
+  test('without online payment on the server, plans are shown without buttons', async () => {
+    vi.mocked(billingService.getSubscription).mockResolvedValue({
+      ...(await billingService.getSubscription()),
+      billingEnabled: false,
+    });
+    renderRoute('/settings/billing');
+    expect(await screen.findByText(/Online payment is not set up/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Choose/ })).not.toBeInTheDocument();
   });
 });
 

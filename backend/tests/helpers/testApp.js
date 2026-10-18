@@ -36,7 +36,16 @@ export async function createTestApp(overrides = {}) {
     worker.waitUntilReady(),
   ]);
 
-  const app = createApp({ env, logger, prisma, redis, emails, storage });
+  // Billing is off unless a test passes a provider (see tests/helpers/fakeStripe.js).
+  const app = createApp({
+    env,
+    logger,
+    prisma,
+    redis,
+    emails,
+    storage,
+    billing: overrides.billing ?? null,
+  });
   const close = async () => {
     rmSync(uploadDir, { recursive: true, force: true });
     await worker.close();

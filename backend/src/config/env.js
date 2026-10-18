@@ -32,6 +32,19 @@ const envSchema = z.object({
   // How often the worker delivers pending notifications (new orders, low stock).
   NOTIFICATION_POLL_MS: z.coerce.number().int().min(100).max(300_000).default(5_000),
 
+  // Payments for Vendora plans. "none": plans cannot be bought (trials and limits still work).
+  // "stripe": Stripe Checkout and Customer Portal; needs both Stripe values below.
+  BILLING_PROVIDER: z.enum(['none', 'stripe']).default('none'),
+  // A restricted key (rk_...) is recommended; see docs/architecture.md for its permissions.
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/, 'must be a Stripe secret or restricted key')
+    .optional(),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .regex(/^whsec_[A-Za-z0-9]+$/, 'must be a Stripe webhook signing secret')
+    .optional(),
+
   // Local directory for uploaded files (development). Kept outside any web-served folder.
   UPLOAD_DIR: z.string().min(1).default('uploads'),
 
@@ -56,6 +69,16 @@ export function loadEnv(source = process.env) {
   if (env.NODE_ENV === 'production' && env.RATE_LIMIT_SCALE !== 1) {
     throw new Error(
       'Invalid environment configuration:\n  RATE_LIMIT_SCALE: must be 1 in production',
+    );
+  }
+  if (env.BILLING_PROVIDER === 'stripe' && (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET)) {
+    throw new Error(
+      'Invalid environment configuration:\n  BILLING_PROVIDER: stripe needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET',
+    );
+  }
+  if (env.NODE_ENV !== 'production' && /_live_/.test(env.STRIPE_SECRET_KEY ?? '')) {
+    throw new Error(
+      'Invalid environment configuration:\n  STRIPE_SECRET_KEY: live keys are only accepted in production',
     );
   }
   if (env.NODE_ENV === 'production' && !env.APP_URL.startsWith('https://')) {

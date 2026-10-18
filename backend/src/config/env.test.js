@@ -27,4 +27,22 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, REDIS_URL: 'http://localhost' })).toThrow(/REDIS_URL/);
     expect(() => loadEnv({ ...valid, CORS_ORIGINS: 'not a url' })).toThrow(/CORS_ORIGINS/);
   });
+
+  test('Stripe billing needs both Stripe values, and live keys only run in production', () => {
+    const key = 'sk_test_abc123';
+    const webhook = 'whsec_abc123';
+    expect(loadEnv(valid).BILLING_PROVIDER).toBe('none');
+    expect(() => loadEnv({ ...valid, BILLING_PROVIDER: 'stripe', STRIPE_SECRET_KEY: key })).toThrow(
+      /STRIPE_WEBHOOK_SECRET/,
+    );
+    const stripe = { ...valid, BILLING_PROVIDER: 'stripe', STRIPE_WEBHOOK_SECRET: webhook };
+    expect(loadEnv({ ...stripe, STRIPE_SECRET_KEY: key }).BILLING_PROVIDER).toBe('stripe');
+    expect(loadEnv({ ...stripe, STRIPE_SECRET_KEY: 'rk_test_abc123' }).BILLING_PROVIDER).toBe(
+      'stripe',
+    );
+    expect(() => loadEnv({ ...stripe, STRIPE_SECRET_KEY: 'pk_test_abc123' })).toThrow(
+      /STRIPE_SECRET_KEY/,
+    );
+    expect(() => loadEnv({ ...stripe, STRIPE_SECRET_KEY: 'sk_live_abc123' })).toThrow(/live keys/);
+  });
 });

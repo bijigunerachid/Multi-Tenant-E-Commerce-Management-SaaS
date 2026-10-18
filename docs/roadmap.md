@@ -355,7 +355,7 @@ Steps, one branch each:
 
 1. Plans, trial, usage limits, read-only mode, and store management (`feature/plans-and-limits`). ✅
 2. Payment provider abstraction, Stripe test-mode Checkout and Customer Portal, verified and
-   idempotent webhooks, billing history (`feature/stripe-billing`).
+   idempotent webhooks, billing history (`feature/stripe-billing`). ✅
 3. Platform administration: organizations, suspension, plan changes, stats.
 4. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
    RLS evaluation, accessibility pass, deployment and smoke tests.
@@ -392,3 +392,44 @@ Step 1 (plans and limits) verification:
   "1000" next to "1,000"; both are fixed and tested.
 - Test and E2E resets keep the `subscription_plans` table, since its rows come from a
   migration.
+
+Step 2 (Stripe billing) verification:
+
+- Design in [architecture.md](architecture.md#11-payments). Stripe SDK 22.6.2 (API
+  `2026-08-26.dahlia`), pinned. The 23.x major release came out two weeks earlier and was
+  left for a separate upgrade.
+- Backend: 17 new tests (16 payment tests and an environment test):
+  - Checkout: the customer is created once with an idempotency key; the session has the
+    plan's price, the organization id and the kept trial, and no `payment_method_types`;
+    nothing changes until a webhook arrives; it stays open while read-only; unknown plans,
+    plans not on sale and a second subscription are refused; the portal; billing turned off.
+  - Webhooks: forged, unsigned and tampered events are refused with nothing stored; a
+    completed checkout activates the right plan once; replays (including three at once) are
+    no-ops; a failed first payment never activates, even when the event payload says "paid";
+    a failed renewal is past due and still usable, and the end of retries makes the
+    organization read-only; out-of-order events keep the latest state; an old subscription
+    ending does not cancel its replacement; metadata naming another organization is
+    ignored; live-mode events are ignored by a test setup; a processing failure answers 500
+    and the retry succeeds.
+  - Invoices: listed in major units, one row per invoice across events, owners only, per
+    organization.
+- Backend: 258 tests.
+- Sabotage checks, each caught: no signature check; no duplicate check; `incomplete` treated as
+  paid; no organization check on metadata; an old subscription able to cancel; live events
+  accepted; a second subscription allowed; trusting the event instead of the API.
+- Frontend: 5 new tests (choosing a plan sends the owner to Checkout and disables the other
+  buttons; the portal and the invoice list for a paying organization; the "waiting for Stripe"
+  message until the webhook lands, then "active"; a canceled checkout; billing turned off).
+  121 in total.
+- Live check in Stripe test mode: `npm run stripe:setup` created the three products, their
+  monthly prices and the portal configuration, and a second run reused all of them. Then
+  `e2e/stripe.spec.js` (with `E2E_STRIPE=1`) registered an organization, chose Scale, paid on
+  the real Checkout page with the test card, came back, saw the plan confirmed by the
+  webhooks (still in trial, as intended), found the trial invoice, and opened the Customer
+  Portal. `stripe listen` showed four events, all answered 200; the invoice events arrived
+  before `checkout.session.completed`, and the result was still right.
+- An accessibility bug found by a test: links and labels with a hidden suffix written as
+  `<span class="sr-only"> text</span>` lose the leading space in the accessible name
+  ("Viewinvoice"). The invoice link now has an `aria-label`, and the two other cases
+  (notifications, usage meters) were rewritten.
+- 15 Playwright tests in a normal run, plus the live Stripe test when enabled.

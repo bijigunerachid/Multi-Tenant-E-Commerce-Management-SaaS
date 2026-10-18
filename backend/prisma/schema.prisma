@@ -120,6 +120,14 @@ enum SubscriptionStatus {
   @@map("subscription_status")
 }
 
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+
+  @@map("webhook_event_status")
+}
+
 enum ProductStatus {
   DRAFT
   ACTIVE
@@ -207,6 +215,7 @@ model Organization {
   reservations       InventoryReservation[]
   counter            OrganizationCounter?
   subscription       Subscription?
+  billingInvoices    BillingInvoice[]
 
   @@map("organizations")
 }
@@ -762,4 +771,51 @@ model Subscription {
 
   @@index([status, trialEndsAt])
   @@map("subscriptions")
+}
+
+/// Every payment-provider webhook received, by the provider's event id. The unique key makes
+/// processing idempotent: a replayed or duplicated event is recognised and not applied twice.
+/// Holds no payload: the handler re-reads the current state from the provider instead.
+model WebhookEvent {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider       String             @db.VarChar(20)
+  eventId        String             @map("event_id") @db.VarChar(120)
+  type           String             @db.VarChar(80)
+  organizationId String?            @map("organization_id") @db.Uuid
+  status         WebhookEventStatus @default(RECEIVED)
+  attempts       Int                @default(0)
+  lastError      String?            @map("last_error") @db.VarChar(500)
+  receivedAt     DateTime           @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt    DateTime?          @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@index([status, receivedAt])
+  @@map("webhook_events")
+}
+
+/// Vendora's invoices to an organization (platform billing), copied from the payment provider.
+/// Separate from the organization's own sales.
+model BillingInvoice {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  provider          String    @db.VarChar(20)
+  providerInvoiceId String    @map("provider_invoice_id") @db.VarChar(120)
+  number            String?   @db.VarChar(60)
+  status            String    @db.VarChar(20)
+  currency          String    @db.Char(3)
+  amountDue         Decimal   @map("amount_due") @db.Decimal(12, 2)
+  amountPaid        Decimal   @map("amount_paid") @db.Decimal(12, 2)
+  periodStart       DateTime? @map("period_start") @db.Timestamptz(3)
+  periodEnd         DateTime? @map("period_end") @db.Timestamptz(3)
+  hostedInvoiceUrl  String?   @map("hosted_invoice_url") @db.VarChar(1000)
+  invoicePdfUrl     String?   @map("invoice_pdf_url") @db.VarChar(1000)
+  issuedAt          DateTime  @map("issued_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerInvoiceId])
+  @@index([organizationId, issuedAt(sort: Desc)])
+  @@map("billing_invoices")
 }
