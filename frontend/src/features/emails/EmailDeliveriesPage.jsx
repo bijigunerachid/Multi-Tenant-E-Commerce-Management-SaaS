@@ -49,7 +49,7 @@ function Outcome({ delivery: d }) {
   return (
     <>
       {d.status === 'FAILED' ? `Gave up after ${tries}` : `Failed ${tries}, will retry`}
-      <span className="block break-words text-xs text-slate-500">{d.lastError}</span>
+      <span className="block break-words text-xs text-ink-500">{d.lastError}</span>
     </>
   );
 }
@@ -89,7 +89,7 @@ export function EmailDeliveriesPage() {
             <select
               value={status}
               onChange={(e) => update({ status: e.target.value, page: null })}
-              className="rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+              className="rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
             >
               {Object.entries(STATUS_FILTERS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -120,19 +120,19 @@ export function EmailDeliveriesPage() {
           />
         ) : (
           <div className="space-y-4">
-            <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+            <ul className="-mx-5 divide-y divide-ink-100 border-y border-ink-100">
               {deliveries.data.data.map((d) => (
                 <li key={d.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-5 py-3">
                   <div className="min-w-0 flex-1 basis-60">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-900">
                       <span className="break-all">{d.to}</span>
                       <Status delivery={d} />
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-ink-500">
                       {KINDS[d.kind] ?? d.kind} · queued {dateTime.format(new Date(d.createdAt))}
                     </p>
                   </div>
-                  <div className="min-w-0 flex-1 basis-60 text-sm text-slate-700">
+                  <div className="min-w-0 flex-1 basis-60 text-sm text-ink-700">
                     <Outcome delivery={d} />
                   </div>
                 </li>

@@ -47,15 +47,15 @@ const adjustSchema = z
 
 function CurrentStock({ row }) {
   return (
-    <dl className="grid grid-cols-3 gap-3 rounded-md bg-slate-50 p-3 text-sm">
+    <dl className="grid grid-cols-3 gap-3 rounded-md bg-ink-50 p-3 text-sm">
       {[
         ['On hand', row.onHand],
         ['Reserved', row.reserved],
         ['Available', row.available],
       ].map(([label, value]) => (
         <div key={label}>
-          <dt className="text-slate-500">{label}</dt>
-          <dd className="text-lg font-semibold tabular-nums text-slate-900">{value}</dd>
+          <dt className="text-ink-500">{label}</dt>
+          <dd className="text-lg font-semibold tabular-nums text-ink-900">{value}</dd>
         </div>
       ))}
     </dl>
@@ -159,7 +159,7 @@ export function StockDialog({ action, row, storeId, onClose }) {
         ) : (
           <>
             <fieldset>
-              <legend className="text-sm font-medium text-slate-800">Type of adjustment</legend>
+              <legend className="text-sm font-medium text-ink-800">Type of adjustment</legend>
               <div className="mt-2 flex flex-wrap gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input type="radio" value="change" {...register('mode')} /> Add or remove units

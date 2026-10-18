@@ -24,10 +24,10 @@ const PLANS = { starter: 'Starter', growth: 'Growth', scale: 'Scale' };
 
 function Tile({ label, value, children }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
-      <dt className="text-sm text-slate-500">{label}</dt>
-      <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value}</dd>
-      {children && <dd className="mt-1 text-xs text-slate-500">{children}</dd>}
+    <div className="rounded-lg border border-ink-200 bg-white px-5 py-4">
+      <dt className="text-sm text-ink-500">{label}</dt>
+      <dd className="mt-1 text-2xl font-semibold tabular-nums text-ink-900">{value}</dd>
+      {children && <dd className="mt-1 text-xs text-ink-500">{children}</dd>}
     </div>
   );
 }
@@ -108,7 +108,7 @@ export function AdminOverviewPage() {
       <select
         value={value}
         onChange={(e) => update({ [key]: e.target.value, page: null })}
-        className="w-full rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+        className="w-full rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
       >
         {options.map(([v, l]) => (
           <option key={v} value={v}>
@@ -133,14 +133,14 @@ export function AdminOverviewPage() {
               <span className="sr-only">Search organizations</span>
               <MagnifyingGlassIcon
                 aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+                className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
               />
               <input
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Name or email"
-                className="w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+                placeholder="Name or email…"
+                className="w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
               />
             </label>
             {select(
@@ -181,20 +181,20 @@ export function AdminOverviewPage() {
             />
           ) : (
             <div className="space-y-4">
-              <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+              <ul className="-mx-5 divide-y divide-ink-100 border-y border-ink-100">
                 {orgs.data.data.map((o) => {
                   const sub = STATUS_LABELS[o.subscriptionStatus];
                   return (
                     <li key={o.id}>
                       <Link
                         to={`/admin/organizations/${o.id}`}
-                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
+                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm hover:bg-ink-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600"
                       >
                         <span className="min-w-0">
-                          <span className="block break-words font-medium text-slate-900">
+                          <span className="block break-words font-medium text-ink-900">
                             {o.name}
                           </span>
-                          <span className="block break-all text-xs text-slate-500">
+                          <span className="block break-all text-xs text-ink-500">
                             {o.owner?.email ?? 'No active owner'} · {o.memberCount}{' '}
                             {o.memberCount === 1 ? 'member' : 'members'} · since{' '}
                             {formatDate(o.createdAt)}
@@ -202,7 +202,7 @@ export function AdminOverviewPage() {
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           {o.status === 'SUSPENDED' && <Badge tone="danger">Suspended</Badge>}
-                          {o.planName && <span className="text-slate-600">{o.planName}</span>}
+                          {o.planName && <span className="text-ink-600">{o.planName}</span>}
                           {sub && <Badge tone={sub.tone}>{sub.label}</Badge>}
                         </span>
                       </Link>

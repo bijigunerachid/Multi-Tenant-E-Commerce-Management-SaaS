@@ -102,12 +102,12 @@ export function AcceptInvitationPage() {
         </Alert>
       ) : inv.accountExists ? (
         <div className="space-y-4">
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-ink-700">
             You already have a Vendora account. Sign in to accept the invitation.
           </p>
           <Link
             to={`/login?next=${encodeURIComponent(nextHere)}`}
-            className="inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+            className="inline-flex w-full items-center justify-center rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-500"
           >
             Sign in to accept
           </Link>

@@ -33,7 +33,7 @@ import { useHasPermission } from '../auth/useSession.js';
 
 const PAGE_SIZE = 25;
 const filterClass =
-  'rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600';
+  'rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600';
 
 export const customerSchema = z.object({
   name: z.string().trim().min(1, 'Enter a name').max(160, 'Use at most 160 characters'),
@@ -214,14 +214,14 @@ export function CustomersPage() {
             <span className="sr-only">Search customers</span>
             <MagnifyingGlassIcon
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+              className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
             />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name, email or phone"
-              className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600"
+              placeholder="Search by name, email or phone…"
+              className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 focus:ring-2 focus:ring-brand-600"
             />
           </label>
           <label>
@@ -282,8 +282,8 @@ export function CustomersPage() {
         ) : (
           <div className={`space-y-4 ${customers.isPlaceholderData ? 'opacity-60' : ''}`}>
             <div className="relative -mx-5 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-ink-200 text-sm">
+                <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                   <tr>
                     <th scope="col" className="px-5 py-3">
                       Customer
@@ -305,13 +305,13 @@ export function CustomersPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-ink-100">
                   {customers.data.data.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50">
+                    <tr key={c.id} className="hover:bg-ink-50">
                       <td className="px-5 py-3">
                         <Link
                           to={`/customers/${c.id}`}
-                          className="font-medium text-slate-900 hover:text-indigo-600"
+                          className="font-medium text-ink-900 hover:text-brand-600"
                         >
                           {c.name}
                         </Link>
@@ -320,23 +320,23 @@ export function CustomersPage() {
                             <Badge>Archived</Badge>
                           </span>
                         )}
-                        <p className="text-xs text-slate-500">{c.email ?? 'No email'}</p>
+                        <p className="text-xs text-ink-500">{c.email ?? 'No email'}</p>
                       </td>
-                      <td className="hidden px-3 py-3 text-slate-600 md:table-cell">
+                      <td className="hidden px-3 py-3 text-ink-600 md:table-cell">
                         {c.phone ?? '—'}
                       </td>
-                      <td className="hidden px-3 py-3 text-slate-600 sm:table-cell">
+                      <td className="hidden px-3 py-3 text-ink-600 sm:table-cell">
                         {c.location
                           ? `${c.location.city}, ${countryName(c.location.country)}`
                           : '—'}
                       </td>
-                      <td className="hidden px-3 py-3 text-right tabular-nums text-slate-600 sm:table-cell">
+                      <td className="hidden px-3 py-3 text-right tabular-nums text-ink-600 sm:table-cell">
                         {c.orderCount}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-900">
+                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-ink-900">
                         {formatSpent(c.spent)}
                       </td>
-                      <td className="hidden px-5 py-3 text-slate-500 lg:table-cell">
+                      <td className="hidden px-5 py-3 text-ink-500 lg:table-cell">
                         {formatDate(c.createdAt)}
                       </td>
                     </tr>

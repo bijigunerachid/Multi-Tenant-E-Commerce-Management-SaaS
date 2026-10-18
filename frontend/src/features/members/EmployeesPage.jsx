@@ -139,8 +139,8 @@ function MembersTable({ members, canManage, selfMembershipId }) {
   return (
     <>
       <div className="relative -mx-5 -my-4 overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+        <table className="min-w-full divide-y divide-ink-200 text-sm">
+          <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
             <tr>
               <th scope="col" className="px-5 py-3">
                 Name
@@ -161,17 +161,17 @@ function MembersTable({ members, canManage, selfMembershipId }) {
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-ink-100">
             {members.map((m) => {
               const editable = canManage && m.role !== 'OWNER' && m.id !== selfMembershipId;
               return (
                 <tr key={m.id}>
                   <td className="px-5 py-3">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-ink-900">
                       {m.name}{' '}
-                      {m.id === selfMembershipId && <span className="text-slate-500">(you)</span>}
+                      {m.id === selfMembershipId && <span className="text-ink-500">(you)</span>}
                     </p>
-                    <p className="text-slate-500">{m.email}</p>
+                    <p className="text-ink-500">{m.email}</p>
                   </td>
                   <td className="px-5 py-3">
                     {editable && m.status === 'ACTIVE' ? (
@@ -181,7 +181,7 @@ function MembersTable({ members, canManage, selfMembershipId }) {
                           value={m.role}
                           disabled={roleChange.isPending}
                           onChange={(e) => roleChange.mutate({ id: m.id, role: e.target.value })}
-                          className="rounded-md border-0 py-1.5 pl-2.5 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+                          className="rounded-md border-0 py-1.5 pl-2.5 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
                         >
                           {ROLE_OPTIONS.map((r) => (
                             <option key={r.value} value={r.value}>
@@ -201,7 +201,7 @@ function MembersTable({ members, canManage, selfMembershipId }) {
                       {m.status === 'ACTIVE' ? 'Active' : 'Deactivated'}
                     </Badge>
                   </td>
-                  <td className="hidden px-5 py-3 text-slate-500 md:table-cell">
+                  <td className="hidden px-5 py-3 text-ink-500 md:table-cell">
                     {dateFormat.format(new Date(m.joinedAt))}
                   </td>
                   {canManage && (
@@ -283,15 +283,15 @@ function InvitationsCard({ canManage }) {
       ) : invitations.data.length === 0 ? (
         <EmptyState icon={EnvelopeIcon} title="No pending invitations" />
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-ink-100">
           {invitations.data.map((inv) => (
             <li
               key={inv.id}
               className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
             >
               <div>
-                <p className="font-medium text-slate-900">{inv.email}</p>
-                <p className="text-slate-500">
+                <p className="font-medium text-ink-900">{inv.email}</p>
+                <p className="text-ink-500">
                   {ROLE_LABELS[inv.role]} ·{' '}
                   {inv.expired
                     ? 'Expired'

@@ -104,6 +104,7 @@ function ProfileCard({ customer, editable }) {
           <TextField
             label="Email"
             type="email"
+            autoComplete="off"
             error={errors.email?.message}
             {...register('email')}
           />
@@ -114,13 +115,13 @@ function ProfileCard({ customer, editable }) {
             {...register('phone')}
           />
           <div className="sm:col-span-2">
-            <label htmlFor="customer-notes" className="block text-sm font-medium text-slate-800">
-              Notes <span className="font-normal text-slate-500">(visible to your team only)</span>
+            <label htmlFor="customer-notes" className="block text-sm font-medium text-ink-800">
+              Notes <span className="font-normal text-ink-500">(visible to your team only)</span>
             </label>
             <textarea
               id="customer-notes"
               rows={3}
-              className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-slate-50"
+              className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-inset focus:ring-brand-600 disabled:bg-ink-50"
               {...register('notes')}
             />
             {errors.notes && <p className="mt-1.5 text-sm text-red-600">{errors.notes.message}</p>}
@@ -305,12 +306,12 @@ function AddressesCard({ customer, editable }) {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {customer.addresses.map((a) => (
-            <li key={a.id} className="rounded-md border border-slate-200 p-4 text-sm">
+            <li key={a.id} className="rounded-md border border-ink-200 p-4 text-sm">
               <div className="flex items-start justify-between gap-2">
-                <p className="font-medium text-slate-900">{a.label ?? 'Address'}</p>
+                <p className="font-medium text-ink-900">{a.label ?? 'Address'}</p>
                 {a.isDefault && <Badge tone="accent">Default</Badge>}
               </div>
-              <address className="mt-2 not-italic leading-relaxed text-slate-600">
+              <address className="mt-2 not-italic leading-relaxed text-ink-600">
                 {a.recipientName && (
                   <>
                     {a.recipientName}
@@ -466,7 +467,7 @@ export function CustomerDetailPage() {
               {canOrder && !c.archived && (
                 <Link
                   to={`/orders/new?customerId=${c.id}`}
-                  className="inline-flex items-center rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="inline-flex items-center rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                 >
                   New order
                 </Link>

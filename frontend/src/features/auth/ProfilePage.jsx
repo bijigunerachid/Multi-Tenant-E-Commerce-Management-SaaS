@@ -156,7 +156,7 @@ export function ProfilePage() {
         </Card>
         <Card title="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">Sign out on every device, including this one.</p>
+            <p className="text-sm text-ink-600">Sign out on every device, including this one.</p>
             <Button variant="secondary" onClick={() => setConfirm(true)}>
               Sign out everywhere
             </Button>

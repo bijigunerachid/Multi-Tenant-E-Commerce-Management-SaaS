@@ -11,7 +11,7 @@ describe('SystemStatusPage', () => {
     fetchReadiness.mockResolvedValue({ status: 'ready', checks: { database: 'up', redis: 'up' } });
     renderRoute('/status');
 
-    expect(screen.getByLabelText('Loading status')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading status…')).toBeInTheDocument();
     expect(await screen.findByText('All services are operational.')).toBeInTheDocument();
     expect(screen.getByText('Database').closest('li')).toHaveTextContent('Up');
     expect(screen.getByText('Cache and queues').closest('li')).toHaveTextContent('Up');

@@ -1,14 +1,14 @@
 import { forwardRef, useId } from 'react';
 
 const controlClass = (invalid) =>
-  `block w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset disabled:bg-slate-50 disabled:text-slate-500 ${
-    invalid ? 'ring-red-400 focus:ring-red-500' : 'ring-slate-300 focus:ring-indigo-600'
+  `block w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-ink-900 ring-1 ring-inset placeholder:text-ink-400 focus:ring-2 focus:ring-inset disabled:bg-ink-50 disabled:text-ink-500 ${
+    invalid ? 'ring-red-400 focus:ring-red-500' : 'ring-ink-300 focus:ring-brand-600'
   }`;
 
 function Field({ id, label, hint, error, children }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="block text-sm font-medium text-ink-800">
         {label}
       </label>
       <div className="mt-1.5">{children}</div>
@@ -17,7 +17,7 @@ function Field({ id, label, hint, error, children }) {
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="mt-1.5 text-sm text-slate-500">
+        <p id={`${id}-hint`} className="mt-1.5 text-sm text-ink-500">
           {hint}
         </p>
       ) : null}
@@ -37,6 +37,8 @@ export const TextField = forwardRef(function TextField({ label, hint, error, id,
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined}
         className={controlClass(Boolean(error))}
+        // Addresses and codes are not words: no spellcheck squiggles or auto-capitalisation.
+        {...(props.type === 'email' ? { spellCheck: false, autoCapitalize: 'none' } : {})}
         {...props}
       />
     </Field>

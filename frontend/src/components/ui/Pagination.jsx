@@ -9,12 +9,12 @@ export function Pagination({ page, pageSize, total, onPageChange }) {
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600"
+      className="flex flex-wrap items-center justify-between gap-3 text-sm text-ink-600"
     >
       <p>
-        Showing <span className="font-medium text-slate-900">{from}</span>–
-        <span className="font-medium text-slate-900">{to}</span> of{' '}
-        <span className="font-medium text-slate-900">{total}</span>
+        Showing <span className="font-medium text-ink-900">{from}</span>–
+        <span className="font-medium text-ink-900">{to}</span> of{' '}
+        <span className="font-medium text-ink-900">{total}</span>
       </p>
       <div className="flex gap-2">
         <Button

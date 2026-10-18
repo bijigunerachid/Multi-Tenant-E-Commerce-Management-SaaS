@@ -27,7 +27,7 @@ const SORT_OPTIONS = [
   { value: '-createdAt', label: 'Newest' },
 ];
 const filterClass =
-  'rounded-md border-0 py-2 pl-3 pr-8 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600';
+  'rounded-md border-0 py-2 pl-3 pr-8 text-sm text-ink-900 ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600';
 
 /** Search, filters and page live in the URL, so they survive reloads and the back button. */
 function useProductFilters() {
@@ -102,7 +102,7 @@ export function ProductsPage() {
           can('product:write') && (
             <Link
               to="/products/new"
-              className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               <PlusIcon aria-hidden="true" className="size-5" /> New product
             </Link>
@@ -116,14 +116,14 @@ export function ProductsPage() {
             <span className="sr-only">Search products</span>
             <MagnifyingGlassIcon
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+              className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
             />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name or SKU"
-              className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600"
+              placeholder="Search by name or SKU…"
+              className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 focus:ring-2 focus:ring-brand-600"
             />
           </label>
           <label>
@@ -213,8 +213,8 @@ export function ProductsPage() {
             aria-busy={products.isFetching}
           >
             <div className="relative -mx-5 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-ink-200 text-sm">
+                <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                   <tr>
                     <th scope="col" className="px-5 py-3">
                       Product
@@ -236,21 +236,25 @@ export function ProductsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-ink-100">
                   {products.data.data.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50">
+                    <tr key={p.id} className="hover:bg-ink-50">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           {p.image ? (
                             <img
                               src={p.image.url}
                               alt=""
-                              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-slate-200"
+                              width={40}
+                              height={40}
+                              loading="lazy"
+                              decoding="async"
+                              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-ink-200"
                             />
                           ) : (
                             <span
                               aria-hidden="true"
-                              className="grid size-10 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-400"
+                              className="grid size-10 shrink-0 place-items-center rounded-md bg-ink-100 text-ink-400"
                             >
                               <PhotoIcon className="size-5" />
                             </span>
@@ -258,18 +262,21 @@ export function ProductsPage() {
                           <div className="min-w-0">
                             <Link
                               to={`/products/${p.id}`}
-                              className="font-medium text-slate-900 hover:text-indigo-600"
+                              className="font-medium text-ink-900 hover:text-brand-600"
                             >
                               {p.name}
                             </Link>
-                            <p className="truncate text-xs text-slate-500">
+                            <p
+                              translate="no"
+                              className="truncate font-mono text-[0.6875rem] text-ink-500"
+                            >
                               {p.skus.join(', ')}
                               {p.variantCount > p.skus.length ? ', …' : ''}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="hidden px-5 py-3 text-slate-600 md:table-cell">
+                      <td className="hidden px-5 py-3 text-ink-600 md:table-cell">
                         {p.category?.name ?? '—'}
                       </td>
                       <td className="px-5 py-3">
@@ -277,13 +284,13 @@ export function ProductsPage() {
                           {PRODUCT_STATUS[p.status].label}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3 text-right tabular-nums text-slate-900">
+                      <td className="px-5 py-3 text-right tabular-nums text-ink-900">
                         {formatPriceRange(p.priceMin, p.priceMax, p.currency)}
                       </td>
-                      <td className="hidden px-5 py-3 text-right tabular-nums text-slate-600 lg:table-cell">
+                      <td className="hidden px-5 py-3 text-right tabular-nums text-ink-600 lg:table-cell">
                         {p.variantCount}
                       </td>
-                      <td className="hidden px-5 py-3 text-slate-500 lg:table-cell">
+                      <td className="hidden px-5 py-3 text-ink-500 lg:table-cell">
                         {formatDate(p.updatedAt)}
                       </td>
                     </tr>

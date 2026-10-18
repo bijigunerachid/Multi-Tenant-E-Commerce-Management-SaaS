@@ -150,7 +150,10 @@ describe('reports', () => {
       'href',
       '/products/p1',
     );
-    expect(screen.getByText('SHIRT-M · Size M')).toBeInTheDocument();
+    // The SKU is a shelf label of its own, followed by the variant.
+    const sku = screen.getByText('SHIRT-M');
+    expect(sku.closest('[translate="no"]')).not.toBeNull();
+    expect(sku.closest('span.block')).toHaveTextContent('SHIRT-M · Size M');
     expect(screen.getByRole('row', { name: /All 51 variants/ })).toHaveTextContent('100%');
     expect(reportService.getReport).toHaveBeenCalledWith('products', {
       storeId: 's1',
@@ -175,7 +178,7 @@ describe('reports', () => {
     );
     const tabs = screen.getByRole('navigation', { name: 'Reports' });
     await userEvent.click(within(tabs).getByRole('link', { name: 'Products' }));
-    expect(await screen.findByLabelText('Loading report')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Loading report…')).toBeInTheDocument();
     release();
     expect(await screen.findByRole('link', { name: 'Linen shirt' })).toBeInTheDocument();
   });

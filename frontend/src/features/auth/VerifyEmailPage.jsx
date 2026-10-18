@@ -42,7 +42,7 @@ export function VerifyEmailPage() {
           {getApiError(mutation.error).message}. Sign in and ask for a new link from the setup page.
         </Alert>
       ) : (
-        <p className="flex items-center gap-2 text-sm text-slate-600">
+        <p className="flex items-center gap-2 text-sm text-ink-600">
           <Spinner className="size-4" /> Confirming…
         </p>
       )}

@@ -19,6 +19,7 @@ import {
   transitionOrder,
 } from '../../services/orderService.js';
 import { useHasPermission } from '../auth/useSession.js';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { ACTION_LABELS, ORDER_STATUS, RESERVATION_LABELS, orderTitle } from './orderLabels.js';
 
 const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -67,7 +68,7 @@ function CancelDialog({ order, onClose }) {
       <form id="cancel-form" noValidate onSubmit={handleSubmit((v) => cancel.mutate(v))}>
         <TextField
           label="Reason"
-          placeholder="For example: customer changed their mind"
+          placeholder="For example: customer changed their mind…"
           error={errors.reason?.message}
           {...register('reason')}
         />
@@ -78,9 +79,9 @@ function CancelDialog({ order, onClose }) {
 
 function Address({ address }) {
   if (!address)
-    return <p className="text-sm text-slate-500">No delivery address (collected in store).</p>;
+    return <p className="text-sm text-ink-500">No delivery address (collected in store).</p>;
   return (
-    <address className="text-sm not-italic leading-relaxed text-slate-700">
+    <address className="text-sm not-italic leading-relaxed text-ink-700">
       {address.recipientName && (
         <>
           {address.recipientName}
@@ -189,7 +190,7 @@ export function OrderDetailPage() {
                 </Button>
                 <Link
                   to={`/orders/${o.id}/edit`}
-                  className="inline-flex items-center rounded-md px-3.5 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  className="inline-flex items-center rounded-md px-3.5 py-2 text-sm font-medium text-ink-700 ring-1 ring-inset ring-ink-300 hover:bg-ink-50"
                 >
                   Edit
                 </Link>
@@ -227,8 +228,8 @@ export function OrderDetailPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card title="Items">
             <div className="relative -mx-5 -my-4 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-ink-200 text-sm">
+                <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                   <tr>
                     <th scope="col" className="px-5 py-3">
                       Product
@@ -247,13 +248,13 @@ export function OrderDetailPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-ink-100">
                   {o.items.map((i) => (
                     <tr key={i.id}>
                       <td className="px-5 py-3">
-                        <p className="font-medium text-slate-900">{i.productName}</p>
-                        <p className="text-xs text-slate-500">
-                          {i.sku}
+                        <p className="font-medium text-ink-900">{i.productName}</p>
+                        <p className="text-xs text-ink-500">
+                          <Sku>{i.sku}</Sku>
                           {i.variantName !== 'Default' && ` · ${i.variantName}`}
                         </p>
                       </td>
@@ -264,7 +265,7 @@ export function OrderDetailPage() {
                       <td className="px-3 py-3 text-right tabular-nums font-medium">
                         {formatMoney(i.lineTotal, o.currency)}
                       </td>
-                      <td className="hidden px-5 py-3 text-slate-600 sm:table-cell">
+                      <td className="hidden px-5 py-3 text-ink-600 sm:table-cell">
                         {i.reservation ? RESERVATION_LABELS[i.reservation] : 'Not reserved'}
                       </td>
                     </tr>
@@ -276,26 +277,24 @@ export function OrderDetailPage() {
 
           <Card title="History">
             {o.history.length === 0 ? (
-              <p className="text-sm text-slate-500">This draft has not been placed yet.</p>
+              <p className="text-sm text-ink-500">This draft has not been placed yet.</p>
             ) : (
               <ol className="space-y-4">
                 {o.history.map((h, idx) => (
                   <li key={idx} className="flex gap-3 text-sm">
                     <span
                       aria-hidden="true"
-                      className="mt-1.5 size-2 shrink-0 rounded-full bg-indigo-500"
+                      className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-500"
                     />
                     <div>
-                      <p className="text-slate-900">
+                      <p className="text-ink-900">
                         <span className="font-medium">{ORDER_STATUS[h.toStatus].label}</span>
-                        {h.actor?.name && (
-                          <span className="text-slate-600"> by {h.actor.name}</span>
-                        )}
+                        {h.actor?.name && <span className="text-ink-600"> by {h.actor.name}</span>}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-ink-500">
                         {dateTime.format(new Date(h.createdAt))}
                       </p>
-                      {h.note && <p className="mt-1 text-slate-600">{h.note}</p>}
+                      {h.note && <p className="mt-1 text-ink-600">{h.note}</p>}
                     </div>
                   </li>
                 ))}
@@ -308,26 +307,26 @@ export function OrderDetailPage() {
           <Card title="Summary">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-slate-600">Subtotal</dt>
+                <dt className="text-ink-600">Subtotal</dt>
                 <dd className="tabular-nums">{formatMoney(o.subtotal, o.currency)}</dd>
               </div>
               {Number(o.discountTotal) > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-slate-600">Discount</dt>
+                  <dt className="text-ink-600">Discount</dt>
                   <dd className="tabular-nums">−{formatMoney(o.discountTotal, o.currency)}</dd>
                 </div>
               )}
               <div className="flex justify-between">
-                <dt className="text-slate-600">
+                <dt className="text-ink-600">
                   Tax{Number(o.taxRate) > 0 && ` (${Number(o.taxRate) * 100}%)`}
                 </dt>
                 <dd className="tabular-nums">{formatMoney(o.taxTotal, o.currency)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-slate-600">Shipping</dt>
+                <dt className="text-ink-600">Shipping</dt>
                 <dd className="tabular-nums">{formatMoney(o.shippingTotal, o.currency)}</dd>
               </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+              <div className="flex justify-between border-t border-ink-200 pt-2 text-base font-semibold">
                 <dt>Total</dt>
                 <dd className="tabular-nums">{formatMoney(o.total, o.currency)}</dd>
               </div>
@@ -339,25 +338,25 @@ export function OrderDetailPage() {
                 {can('customer:read') ? (
                   <Link
                     to={`/customers/${o.customer.id}`}
-                    className="font-medium text-slate-900 hover:text-indigo-600"
+                    className="font-medium text-ink-900 hover:text-brand-600"
                   >
                     {o.customer.name}
                   </Link>
                 ) : (
-                  <p className="font-medium text-slate-900">{o.customer.name}</p>
+                  <p className="font-medium text-ink-900">{o.customer.name}</p>
                 )}
-                <p className="text-slate-500">{o.customer.email ?? 'No email'}</p>
+                <p className="text-ink-500">{o.customer.email ?? 'No email'}</p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No customer on this order.</p>
+              <p className="text-sm text-ink-500">No customer on this order.</p>
             )}
-            <h3 className="mb-1 mt-4 text-sm font-medium text-slate-800">Delivery</h3>
+            <h3 className="mb-1 mt-4 text-sm font-medium text-ink-800">Delivery</h3>
             <Address address={o.shippingAddress} />
-            <p className="mt-3 text-xs text-slate-500">Fulfilled from {o.store.name}</p>
+            <p className="mt-3 text-xs text-ink-500">Fulfilled from {o.store.name}</p>
           </Card>
           {o.notes && (
             <Card title="Notes">
-              <p className="whitespace-pre-line text-sm text-slate-700">{o.notes}</p>
+              <p className="whitespace-pre-line text-sm text-ink-700">{o.notes}</p>
             </Card>
           )}
         </div>

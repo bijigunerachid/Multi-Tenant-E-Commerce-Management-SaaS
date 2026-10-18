@@ -31,8 +31,8 @@ function Meter({ label, used, limit }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2 text-sm">
-        <span className="font-medium text-slate-800">{label}</span>
-        <span className={full ? 'font-medium text-red-700' : 'text-slate-600'}>
+        <span className="font-medium text-ink-800">{label}</span>
+        <span className={full ? 'font-medium text-red-700' : 'text-ink-600'}>
           {used.toLocaleString()} of {limit.toLocaleString()}
           {full && <span className="sr-only">, limit reached</span>}
         </span>
@@ -43,10 +43,10 @@ function Meter({ label, used, limit }) {
         aria-valuemin={0}
         aria-valuemax={limit}
         aria-valuenow={Math.min(used, limit)}
-        className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100"
+        className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-100"
       >
         <div
-          className={`h-full rounded-full ${full ? 'bg-red-600' : ratio >= 0.8 ? 'bg-amber-500' : 'bg-indigo-600'}`}
+          className={`h-full rounded-full ${full ? 'bg-red-600' : ratio >= 0.8 ? 'bg-amber-500' : 'bg-brand-600'}`}
           style={{ width: `${ratio * 100}%` }}
         />
       </div>
@@ -82,17 +82,17 @@ function StatusLine({ subscription: s }) {
 function PlanCard({ plan, current, action }) {
   return (
     <li
-      className={`flex flex-col rounded-lg p-4 ring-1 ${current ? 'bg-indigo-50/60 ring-2 ring-indigo-600' : 'ring-slate-200'}`}
+      className={`flex flex-col rounded-lg p-4 ring-1 ${current ? 'bg-brand-50/60 ring-2 ring-brand-600' : 'ring-ink-200'}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-900">{plan.name}</h3>
+        <h3 className="text-sm font-semibold text-ink-900">{plan.name}</h3>
         {current && <Badge tone="accent">Current plan</Badge>}
       </div>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">
+      <p className="mt-2 text-2xl font-semibold text-ink-900">
         {formatMoney(plan.priceMonthly, plan.currency)}
-        <span className="text-sm font-normal text-slate-500"> / month</span>
+        <span className="text-sm font-normal text-ink-500"> / month</span>
       </p>
-      <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+      <ul className="mt-3 space-y-1.5 text-sm text-ink-700">
         {Object.keys(RESOURCE_LABELS).map((key) => (
           <li key={key}>{countOf(key, plan.limits[key])}</li>
         ))}
@@ -101,9 +101,9 @@ function PlanCard({ plan, current, action }) {
             {plan.features[key] ? (
               <CheckIcon aria-hidden="true" className="size-4 text-emerald-600" />
             ) : (
-              <MinusIcon aria-hidden="true" className="size-4 text-slate-400" />
+              <MinusIcon aria-hidden="true" className="size-4 text-ink-400" />
             )}
-            <span className={plan.features[key] ? '' : 'text-slate-500'}>
+            <span className={plan.features[key] ? '' : 'text-ink-500'}>
               {label}
               <span className="sr-only">
                 {plan.features[key] ? ': included' : ': not included'}
@@ -141,10 +141,10 @@ function InvoicesCard({ organizationId }) {
       ) : invoices.isError ? (
         <Alert tone="error">{getApiError(invoices.error).message}</Alert>
       ) : invoices.data.data.length === 0 ? (
-        <p className="text-sm text-slate-600">No invoices yet.</p>
+        <p className="text-sm text-ink-600">No invoices yet.</p>
       ) : (
         <div className="space-y-4">
-          <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+          <ul className="-mx-5 divide-y divide-ink-100 border-y border-ink-100">
             {invoices.data.data.map((inv) => {
               const status = INVOICE_STATUS[inv.status] ?? { label: inv.status, tone: 'neutral' };
               return (
@@ -153,20 +153,20 @@ function InvoicesCard({ organizationId }) {
                   className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm"
                 >
                   <span className="min-w-0">
-                    <span className="block font-medium text-slate-900">
+                    <span className="block font-medium text-ink-900">
                       {formatDate(inv.issuedAt)}
                       {inv.number && (
-                        <span className="font-normal text-slate-500"> · {inv.number}</span>
+                        <span className="font-normal text-ink-500"> · {inv.number}</span>
                       )}
                     </span>
                     {inv.periodStart && (
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-ink-500">
                         {formatDate(inv.periodStart)} – {formatDate(inv.periodEnd)}
                       </span>
                     )}
                   </span>
                   <span className="flex flex-wrap items-center gap-3">
-                    <span className="font-medium text-slate-900">
+                    <span className="font-medium text-ink-900">
                       {formatMoney(inv.amountDue, inv.currency)}
                     </span>
                     <Badge tone={status.tone}>{status.label}</Badge>
@@ -177,7 +177,7 @@ function InvoicesCard({ organizationId }) {
                         rel="noopener noreferrer"
                         // A hidden text span loses its leading space in the accessible name.
                         aria-label={`View invoice ${inv.number ?? formatDate(inv.issuedAt)}`}
-                        className="font-medium text-indigo-600 hover:text-indigo-500"
+                        className="font-medium text-brand-600 hover:text-brand-500"
                       >
                         View
                       </a>
@@ -325,13 +325,13 @@ export function BillingPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
               <div>
-                <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-slate-900">
+                <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-ink-900">
                   {sub.plan?.name ?? 'No plan'}
                   <Badge tone={STATUS_LABELS[sub.status].tone}>
                     {STATUS_LABELS[sub.status].label}
                   </Badge>
                 </p>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm text-ink-600">
                   <StatusLine subscription={sub} />
                 </p>
               </div>
@@ -345,7 +345,7 @@ export function BillingPage() {
                       limit={sub.plan.limits[key]}
                     />
                   ))}
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-500">
                     Pending invitations count as members. Archived stores and products do not count.
                   </p>
                 </div>

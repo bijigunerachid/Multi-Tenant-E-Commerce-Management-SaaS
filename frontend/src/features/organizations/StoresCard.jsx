@@ -195,14 +195,14 @@ export function StoresCard() {
           {getApiError(stores.error).message}
         </Alert>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-ink-100">
           {stores.data.map((s) => (
             <li
               key={s.id}
               className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 text-sm"
             >
-              <span className="min-w-0 break-words font-medium text-slate-900">{s.name}</span>
-              <span className="flex flex-wrap items-center gap-2 text-slate-500">
+              <span className="min-w-0 break-words font-medium text-ink-900">{s.name}</span>
+              <span className="flex flex-wrap items-center gap-2 text-ink-500">
                 {s.currency} · {s.timezone.replaceAll('_', ' ')}
                 <Badge tone={s.status === 'ACTIVE' ? 'success' : 'neutral'}>
                   {s.status === 'ACTIVE' ? 'Active' : 'Archived'}

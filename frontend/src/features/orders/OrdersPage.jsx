@@ -33,7 +33,7 @@ const TABS = [
   'CANCELLED',
 ];
 const inputClass =
-  'rounded-md border-0 py-2 px-3 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600';
+  'rounded-md border-0 py-2 px-3 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600';
 
 export function OrdersPage() {
   const can = useHasPermission();
@@ -103,7 +103,7 @@ export function OrdersPage() {
             {can('order:write') && (
               <Link
                 to="/orders/new"
-                className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
               >
                 <PlusIcon aria-hidden="true" className="size-5" /> New order
               </Link>
@@ -126,8 +126,8 @@ export function OrdersPage() {
               onClick={() => update({ status })}
               className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-medium ${
                 filters.status === status
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-ink-600 hover:bg-ink-100'
               }`}
             >
               {status ? ORDER_STATUS[status].label : 'All'}
@@ -135,13 +135,13 @@ export function OrdersPage() {
           ))}
         </div>
         {filters.customerId && (
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm text-indigo-700">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-sm text-brand-700">
             Customer: {filters.customerName || 'selected customer'}
             <button
               type="button"
               aria-label="Show orders of all customers"
               onClick={() => update({ customerId: '', customer: '' })}
-              className="rounded-full px-1.5 hover:bg-indigo-100"
+              className="rounded-full px-1.5 hover:bg-brand-100"
             >
               ×
             </button>
@@ -152,18 +152,18 @@ export function OrdersPage() {
             <span className="sr-only">Search orders</span>
             <MagnifyingGlassIcon
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+              className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
             />
             <input
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Order number, customer or SKU"
-              className={`${inputClass} block w-full pl-9 shadow-sm placeholder:text-slate-400`}
+              placeholder="Order number, customer or SKU…"
+              className={`${inputClass} block w-full pl-9 placeholder:text-ink-400`}
             />
           </label>
           <label className="text-sm">
-            <span className="block text-xs font-medium text-slate-600">Placed from</span>
+            <span className="block text-xs font-medium text-ink-600">Placed from</span>
             <input
               type="date"
               value={filters.from}
@@ -173,7 +173,7 @@ export function OrdersPage() {
             />
           </label>
           <label className="text-sm">
-            <span className="block text-xs font-medium text-slate-600">to</span>
+            <span className="block text-xs font-medium text-ink-600">to</span>
             <input
               type="date"
               value={filters.to}
@@ -230,7 +230,7 @@ export function OrdersPage() {
                 can('order:write') && (
                   <Link
                     to="/orders/new"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                    className="text-sm font-medium text-brand-600 hover:text-brand-500"
                   >
                     Create the first order
                   </Link>
@@ -241,8 +241,8 @@ export function OrdersPage() {
         ) : (
           <div className={`space-y-4 ${orders.isPlaceholderData ? 'opacity-60' : ''}`}>
             <div className="relative -mx-5 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-ink-200 text-sm">
+                <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                   <tr>
                     <th scope="col" className="px-5 py-3">
                       Order
@@ -264,32 +264,32 @@ export function OrdersPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-ink-100">
                   {orders.data.data.map((o) => (
-                    <tr key={o.id} className="hover:bg-slate-50">
+                    <tr key={o.id} className="hover:bg-ink-50">
                       <td className="whitespace-nowrap px-5 py-3">
                         <Link
                           to={`/orders/${o.id}`}
-                          className="font-medium text-slate-900 hover:text-indigo-600"
+                          className="font-mono text-[0.8125rem] font-medium tabular-nums text-ink-900 hover:text-brand-600"
                         >
                           {o.number ? `#${o.number}` : 'Draft'}
                         </Link>
                       </td>
-                      <td className="px-3 py-3 text-slate-700">
-                        {o.customer?.name ?? <span className="text-slate-400">No customer</span>}
+                      <td className="px-3 py-3 text-ink-700">
+                        {o.customer?.name ?? <span className="text-ink-400">No customer</span>}
                       </td>
                       <td className="px-3 py-3">
                         <Badge tone={ORDER_STATUS[o.status].tone}>
                           {ORDER_STATUS[o.status].label}
                         </Badge>
                       </td>
-                      <td className="hidden px-3 py-3 text-right tabular-nums text-slate-600 sm:table-cell">
+                      <td className="hidden px-3 py-3 text-right tabular-nums text-ink-600 sm:table-cell">
                         {o.itemCount}
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums font-medium">
                         {formatMoney(o.total, o.currency)}
                       </td>
-                      <td className="hidden px-5 py-3 text-slate-500 md:table-cell">
+                      <td className="hidden px-5 py-3 text-ink-500 md:table-cell">
                         {o.placedAt ? formatDate(o.placedAt) : '—'}
                       </td>
                     </tr>

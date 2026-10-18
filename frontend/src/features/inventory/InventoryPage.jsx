@@ -20,6 +20,7 @@ import { listStores } from '../../services/organizationService.js';
 import { getInventorySummary, listInventory } from '../../services/inventoryService.js';
 import { useHasPermission } from '../auth/useSession.js';
 import { STOCK_STATUS } from './labels.js';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { StockDialog } from './StockDialog.jsx';
 
 const PAGE_SIZE = 25;
@@ -71,15 +72,12 @@ function SummaryCards({ storeId }) {
   return (
     <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((c) => (
-        <div
-          key={c.label}
-          className="rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm"
-        >
-          <dt className="text-sm text-slate-500">{c.label}</dt>
-          <dd className={`mt-1 text-2xl font-semibold tabular-nums text-slate-900 ${c.tone ?? ''}`}>
+        <div key={c.label} className="rounded-lg border border-ink-200 bg-white px-5 py-4">
+          <dt className="text-sm text-ink-500">{c.label}</dt>
+          <dd className={`mt-1 text-2xl font-semibold tabular-nums text-ink-900 ${c.tone ?? ''}`}>
             {c.value}
           </dd>
-          <dd className="mt-0.5 text-xs text-slate-500">{c.sub}</dd>
+          <dd className="mt-0.5 text-xs text-ink-500">{c.sub}</dd>
         </div>
       ))}
     </dl>
@@ -142,7 +140,7 @@ export function InventoryPage() {
         actions={
           <Link
             to={`/inventory/movements${storeId ? `?storeId=${storeId}` : ''}`}
-            className="inline-flex items-center rounded-md px-3.5 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+            className="inline-flex items-center rounded-md px-3.5 py-2 text-sm font-medium text-ink-700 ring-1 ring-inset ring-ink-300 hover:bg-ink-50"
           >
             Movement history
           </Link>
@@ -151,11 +149,11 @@ export function InventoryPage() {
       <div className="space-y-6">
         {activeStores.length > 1 && (
           <label className="flex items-center gap-2 text-sm">
-            <span className="font-medium text-slate-800">Store</span>
+            <span className="font-medium text-ink-800">Store</span>
             <select
               value={storeId}
               onChange={(e) => update({ storeId: e.target.value })}
-              className="rounded-md border-0 py-1.5 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+              className="rounded-md border-0 py-1.5 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
             >
               {activeStores.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -173,7 +171,7 @@ export function InventoryPage() {
             <div
               role="tablist"
               aria-label="Stock status"
-              className="flex flex-wrap gap-1 rounded-md bg-slate-100 p-1"
+              className="flex flex-wrap gap-1 rounded-md bg-ink-100 p-1"
             >
               {STOCK_TABS.map((t) => (
                 <button
@@ -184,8 +182,8 @@ export function InventoryPage() {
                   onClick={() => update({ stock: t.value })}
                   className={`rounded px-3 py-1.5 text-sm font-medium ${
                     filters.stock === t.value
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white text-ink-900'
+                      : 'text-ink-600 hover:text-ink-900'
                   }`}
                 >
                   {t.label}
@@ -196,14 +194,14 @@ export function InventoryPage() {
               <span className="sr-only">Search inventory</span>
               <MagnifyingGlassIcon
                 aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+                className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
               />
               <input
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by product or SKU"
-                className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600"
+                placeholder="Search by product or SKU…"
+                className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 focus:ring-2 focus:ring-brand-600"
               />
             </label>
           </div>
@@ -232,7 +230,7 @@ export function InventoryPage() {
                 action={
                   <Link
                     to="/products/new"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                    className="text-sm font-medium text-brand-600 hover:text-brand-500"
                   >
                     New product
                   </Link>
@@ -242,8 +240,8 @@ export function InventoryPage() {
           ) : (
             <div className={`space-y-4 ${inventory.isPlaceholderData ? 'opacity-60' : ''}`}>
               <div className="relative -mx-5 overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                <table className="min-w-full divide-y divide-ink-200 text-sm">
+                  <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                     <tr>
                       <th scope="col" className="px-5 py-3">
                         Product
@@ -268,23 +266,23 @@ export function InventoryPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-ink-100">
                     {inventory.data.data.map((r) => (
                       <tr key={r.variantId}>
                         <td className="px-5 py-3">
                           <Link
                             to={`/products/${r.productId}`}
-                            className="font-medium text-slate-900 hover:text-indigo-600"
+                            className="font-medium text-ink-900 hover:text-brand-600"
                           >
                             {r.productName}
                           </Link>
-                          <p className="text-xs text-slate-500">
-                            {r.sku}
+                          <p className="text-xs text-ink-500">
+                            <Sku>{r.sku}</Sku>
                             {r.variantName !== 'Default' && ` · ${r.variantName}`}
                           </p>
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums">{r.onHand}</td>
-                        <td className="hidden px-3 py-3 text-right tabular-nums text-slate-500 sm:table-cell">
+                        <td className="hidden px-3 py-3 text-right tabular-nums text-ink-500 sm:table-cell">
                           {r.reserved}
                         </td>
                         <td className="px-3 py-3 text-right font-medium tabular-nums">
@@ -295,7 +293,7 @@ export function InventoryPage() {
                             {STOCK_STATUS[r.status].label}
                           </Badge>
                         </td>
-                        <td className="hidden px-3 py-3 text-right tabular-nums text-slate-600 lg:table-cell">
+                        <td className="hidden px-3 py-3 text-right tabular-nums text-ink-600 lg:table-cell">
                           {r.stockValue === null ? '—' : formatMoney(r.stockValue, r.currency)}
                         </td>
                         <td className="whitespace-nowrap px-5 py-3 text-right">
@@ -322,7 +320,7 @@ export function InventoryPage() {
                           <Link
                             to={`/inventory/movements?variantId=${r.variantId}&storeId=${storeId}&sku=${encodeURIComponent(r.sku)}`}
                             aria-label={`Movement history for ${r.sku}`}
-                            className="ml-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            className="ml-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-100"
                           >
                             History
                           </Link>
