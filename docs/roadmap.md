@@ -356,7 +356,8 @@ Steps, one branch each:
 1. Plans, trial, usage limits, read-only mode, and store management (`feature/plans-and-limits`). ✅
 2. Payment provider abstraction, Stripe test-mode Checkout and Customer Portal, verified and
    idempotent webhooks, billing history (`feature/stripe-billing`). ✅
-3. Platform administration: organizations, suspension, plan changes, stats.
+3. Platform administration: organizations, suspension, plan changes, stats
+   (`feature/platform-admin`). ✅
 4. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
    RLS evaluation, accessibility pass, deployment and smoke tests.
 
@@ -433,3 +434,49 @@ Step 2 (Stripe billing) verification:
   ("Viewinvoice"). The invoice link now has an `aria-label`, and the two other cases
   (notifications, usage meters) were rewritten.
 - 15 Playwright tests in a normal run, plus the live Stripe test when enabled.
+
+Step 3 (platform administration) verification:
+
+- Design in [architecture.md](architecture.md#12-platform-administration).
+- Backend: 12 new tests:
+  - every admin route refuses anonymous callers, every organization role and a user without
+    an organization (generated from the route table); revoking the role works on the next
+    request; the role cannot be set through the profile;
+  - figures: organizations, subscriptions by status and plan, revenue counting only
+    subscriptions paid through Stripe, trials ending soon, failed webhooks;
+  - search by name and by owner email, filters, an expired trial found as expired before the
+    hourly job;
+  - organization details;
+  - suspension needs a reason, locks the members out (only them), shows in the owner's audit
+    log with the admin and the reason, and is undone by reactivation;
+  - trials extended within 90 days; a free plan bringing an expired organization back; a
+    Stripe-billed subscription refused;
+  - the audit log refused without a reason, limited to the organization, and the access
+    recorded where the owner sees it;
+  - a suspended organization staying selected and working again once reactivated.
+- Backend: 271 tests.
+- Sabotage checks, each caught: no platform role check; reading the audit log without
+  recording it; changing a Stripe-billed subscription; an unbounded trial; free plans counted
+  as revenue; search ignored.
+- Frontend: 9 new tests (access, the user menu entry, figures and the organization list,
+  search and filters in the URL, suspending with a reason and the Stripe warning, extending a
+  trial to the end of the chosen day, Stripe-billed subscriptions without a Change button, the
+  audit log behind a reason, the suspended screen with a way to the other organizations).
+  130 in total.
+- E2E: `admin.spec.js` grants the role with the real CLI, then suspends an organization,
+  checks that its owner is refused and sees the suspended screen, reactivates it, reads the
+  audit log with a reason, and checks the owner's view of what support did. The admin pages are
+  in the phone-width check, as an administrator. 16 Playwright tests.
+- Bugs found along the way:
+  - Suspending an organization cleared it from its members' sessions: during the suspension
+    they were sent to "create your organization", and after reactivation they were still
+    there. The session now keeps it selected with its status, and the app shows a suspended
+    screen.
+  - Two reason fields on the organization page shared an HTML id, so a label could point at
+    the wrong box. Each field now gets its own id.
+  - A visual review found empty bands around the members list and a cut-off search
+    placeholder; both are fixed.
+  - CI caught what local runs could not: the admin CLI validated every API setting (Redis,
+    CORS), and CI has no `backend/.env`. Locally the gap was hidden because importing Prisma
+    loads `backend/.env` into the environment. Command-line scripts now validate only the
+    settings they use (`loadEnvFor`), with a test that runs without Redis or CORS settings.

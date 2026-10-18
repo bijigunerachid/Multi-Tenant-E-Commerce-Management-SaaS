@@ -24,6 +24,7 @@ import { reportRoutes } from './modules/reports/reports.routes.js';
 import { emailRoutes } from './modules/emails/emails.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
 import { billingWebhookRouter, subscriptionRoutes } from './modules/billing/billing.routes.js';
+import { adminRoutes } from './modules/admin/admin.routes.js';
 
 const MODULES = [
   authRoutes,
@@ -41,6 +42,7 @@ const MODULES = [
   emailRoutes,
   notificationRoutes,
   subscriptionRoutes,
+  adminRoutes,
 ];
 
 /**

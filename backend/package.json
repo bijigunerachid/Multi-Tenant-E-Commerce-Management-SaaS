@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "stripe:setup": "node --env-file-if-exists=.env src/scripts/stripeSetup.js",
-    "stripe:listen": "stripe listen --forward-to localhost:4100/api/v1/subscriptions/webhooks/stripe --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,invoice.finalized,invoice.paid,invoice.payment_failed,invoice.voided,invoice.marked_uncollectible"
+    "stripe:listen": "stripe listen --forward-to localhost:4100/api/v1/subscriptions/webhooks/stripe --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,invoice.finalized,invoice.paid,invoice.payment_failed,invoice.voided,invoice.marked_uncollectible",
+    "admin": "node --env-file-if-exists=.env src/scripts/platformAdmin.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

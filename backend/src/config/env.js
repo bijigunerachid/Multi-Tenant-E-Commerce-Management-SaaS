@@ -53,6 +53,24 @@ const envSchema = z.object({
   RATE_LIMIT_SCALE: z.coerce.number().int().min(1).max(1000).default(1),
 });
 
+function describeProblems(error) {
+  return error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`).join('\n');
+}
+
+/**
+ * For command-line scripts: validates only the settings the script uses (always including
+ * NODE_ENV), so a script that only talks to the database does not need Redis or CORS settings.
+ */
+export function loadEnvFor(names, source = process.env) {
+  const result = envSchema
+    .pick(Object.fromEntries(['NODE_ENV', ...names].map((n) => [n, true])))
+    .safeParse(source);
+  if (!result.success) {
+    throw new Error(`Invalid environment configuration:\n${describeProblems(result.error)}`);
+  }
+  return Object.freeze(result.data);
+}
+
 /**
  * Validates process.env once at startup. A misconfigured server must refuse to start
  * instead of failing later on the first request that needs the missing value.
@@ -60,10 +78,7 @@ const envSchema = z.object({
 export function loadEnv(source = process.env) {
   const result = envSchema.safeParse(source);
   if (!result.success) {
-    const problems = result.error.issues
-      .map((issue) => `  ${issue.path.join('.')}: ${issue.message}`)
-      .join('\n');
-    throw new Error(`Invalid environment configuration:\n${problems}`);
+    throw new Error(`Invalid environment configuration:\n${describeProblems(result.error)}`);
   }
   const env = result.data;
   if (env.NODE_ENV === 'production' && env.RATE_LIMIT_SCALE !== 1) {

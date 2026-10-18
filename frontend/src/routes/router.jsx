@@ -15,6 +15,7 @@ import {
   RequirePermission,
 } from './guards.jsx';
 import { NotFoundPage } from './NotFoundPage.jsx';
+import { AdminLayout, RequirePlatformAdmin } from '../features/admin/AdminLayout.jsx';
 import { RouteErrorPage } from './RouteErrorPage.jsx';
 import { FullPageSpinner } from '../components/ui/Spinner.jsx';
 
@@ -65,6 +66,14 @@ const NotificationsPage = page(
   'NotificationsPage',
 );
 const BillingPage = page(() => import('../features/billing/BillingPage.jsx'), 'BillingPage');
+const AdminOverviewPage = page(
+  () => import('../features/admin/AdminOverviewPage.jsx'),
+  'AdminOverviewPage',
+);
+const AdminOrganizationPage = page(
+  () => import('../features/admin/AdminOrganizationPage.jsx'),
+  'AdminOrganizationPage',
+);
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -103,6 +112,20 @@ export const routes = [
             children: [{ path: '/onboarding', element: <OnboardingPage /> }],
           },
           { path: '/organizations/new', element: <OnboardingPage /> },
+          // Platform administration: outside any organization, Vendora staff only.
+          {
+            path: '/admin',
+            element: <RequirePlatformAdmin />,
+            children: [
+              {
+                element: <AdminLayout />,
+                children: [
+                  { index: true, lazy: AdminOverviewPage },
+                  { path: 'organizations/:organizationId', lazy: AdminOrganizationPage },
+                ],
+              },
+            ],
+          },
           {
             element: <RequireOrganization />,
             children: [

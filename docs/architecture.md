@@ -369,7 +369,43 @@ Owner ◄── /settings/billing?checkout=success (shows "waiting for Stripe" u
   the provider's real verification. `e2e/stripe.spec.js` runs a real test-mode Checkout and
   the Customer Portal when `E2E_STRIPE=1` (see `playwright.config.js`).
 
-## 12. Trust boundaries
+## 12. Platform administration
+
+Vendora staff look after every organization from `/admin` (API `/api/v1/admin`, web app
+`/admin`). Routes declare `access: { platform: 'SUPER_ADMIN' }`: they need a signed-in user
+whose `platformRole` is `SUPER_ADMIN`, re-read on every request, and they have no tenant.
+
+- **Granting the role.** Only from the server: `npm run admin -w backend -- grant <email>`
+  (also `revoke` and `list`). The account must be verified. There is no API or screen for it,
+  and each change is audited (`platform.admin_granted`, `platform.admin_revoked`).
+- **What admins can do:**
+  - see platform figures: organizations, users, subscriptions by status and plan, monthly
+    recurring revenue (subscriptions paid through Stripe only), trials ending within 7 days,
+    failed webhooks;
+  - search organizations by name, address or member email, and filter by status,
+    subscription and plan;
+  - open an organization: members, usage, subscription, recent invoices;
+  - suspend or reactivate it, with a reason. Members are refused on their next request and
+    see a "suspended" screen; the organization stays selected in their session, so they are
+    back in as soon as it is reactivated. Stripe keeps billing a suspended organization: the
+    admin is warned to pause or cancel it in Stripe;
+  - extend a trial (at most 90 days ahead), give a plan free of charge (`ACTIVE` without a
+    provider subscription), or end access (`CANCELED`), with a reason. Subscriptions paid
+    through Stripe are refused (`409 BILLED_BY_PROVIDER`): they change in Stripe, and the
+    webhook brings Vendora along, so the two never disagree;
+  - read the organization's audit log, after giving a reason.
+- **Accountability.** Every admin action is written to the organization's own audit log
+  (`admin.organization_suspended`, `admin.organization_reactivated`,
+  `admin.subscription_changed` with before and after, `admin.audit_viewed`), with the admin as
+  actor and the reason, so the owner sees what support did and why.
+- **No impersonation.** Admins never act inside an organization as one of its members; the
+  admin area has its own layout, outside any organization.
+- **Tests.** A generated test sends every admin route the requests of every organization role
+  (owners included), a user without an organization, and anonymous callers, and expects 403
+  or 401. The tenant isolation sweep skips these routes, since they cross organizations by
+  design.
+
+## 13. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.

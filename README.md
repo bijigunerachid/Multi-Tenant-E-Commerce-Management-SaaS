@@ -5,8 +5,8 @@ products, inventory, orders, employees, customers and analytics on one shared pl
 with strict tenant isolation and role-based access.
 
 > **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits, read-only mode and
-> Stripe payments (Checkout, Customer Portal, webhooks, invoices) work; platform
-> administration is next. (CSV exports as background jobs were deferred from Phase 5.)
+> Stripe payments (Checkout, Customer Portal, webhooks, invoices) and platform administration
+> work; production readiness is next. (CSV exports as background jobs were deferred from Phase 5.)
 > Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
 > catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
 > end to end. The dashboard shows revenue, orders and stock alerts, and
@@ -79,6 +79,15 @@ npm run stripe:listen -w backend        # forwards webhooks; copy the whsec_ sec
 
 Pay with the test card 4242 4242 4242 4242, any future date and any CVC. Keep
 `stripe:listen` running while you test: plans change only when its webhooks arrive.
+
+### Platform administration
+
+Vendora staff manage every organization at http://localhost:5173/admin. The role is granted
+from the command line only:
+
+```powershell
+npm run admin -w backend -- grant you@example.com    # also: revoke <email>, list
+```
 
 ## Checks
 

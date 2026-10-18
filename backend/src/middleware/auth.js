@@ -69,6 +69,18 @@ export function requireTenant({ prisma }) {
   };
 }
 
+/**
+ * Platform administration (Vendora staff). The role is granted only from the server's command
+ * line (`npm run admin -w backend`), never through the API, and is re-read with the user on
+ * every request, so revoking it takes effect at once.
+ */
+export function requirePlatformRole(role) {
+  return function checkPlatformRole(req, _res, next) {
+    if (req.user.platformRole !== role) return next(forbidden());
+    next();
+  };
+}
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
