@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { hashPassword } from '../../src/utils/passwords.js';
 import { apiClient } from './client.js';
+import { loadEnv } from '../../src/config/env.js';
+import { createSecretBox } from '../../src/utils/secretBox.js';
+import { generateSecret, totp } from '../../src/utils/totp.js';
 
 export const PASSWORD = 'correct-horse-battery';
 let passwordHash;
@@ -132,4 +135,39 @@ export async function setSubscription(prisma, organizationId, { plan = 'growth',
     create: { organizationId, ...data },
     update: data,
   });
+}
+
+/** Turns on two-factor sign-in for a user directly; returns the authenticator secret. */
+export async function enableMfa(prisma, user, env = loadEnv()) {
+  const secret = generateSecret();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      mfaSecret: createSecretBox(env.MFA_ENCRYPTION_KEY).seal(secret),
+      mfaEnabledAt: new Date(),
+    },
+  });
+  return secret;
+}
+
+/** Signs in with password and authenticator code (two steps), like the web app. */
+export async function signInWithMfa(app, user, secret, password = PASSWORD) {
+  const client = apiClient(app);
+  const first = await client.post('/auth/login', { email: user.email, password });
+  if (!first.body.data?.mfaRequired) {
+    throw new Error(`Expected a code step for ${user.email}: ${JSON.stringify(first.body)}`);
+  }
+  const second = await client.post('/auth/mfa/verify', { code: totp(secret) });
+  if (second.status !== 200) {
+    throw new Error(`Code step failed for ${user.email}: ${JSON.stringify(second.body)}`);
+  }
+  return client;
+}
+
+/** A platform administrator with two-factor sign-in, signed in. */
+export async function platformAdmin(app, prisma) {
+  const user = await createUser(prisma, { platformRole: 'SUPER_ADMIN' });
+  const secret = await enableMfa(prisma, user);
+  const client = await signInWithMfa(app, user, secret);
+  return { user, secret, client };
 }

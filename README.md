@@ -95,11 +95,12 @@ again changes nothing; it never runs in production.
 
 ### Platform administration
 
-Vendora staff manage every organization at http://localhost:5173/admin. The role is granted
-from the command line only:
+Vendora staff manage organizations, user accounts and the platform activity log at
+http://localhost:5173/admin. The role is granted from the command line only, and the admin area
+also needs two-factor sign-in (turn it on under Your profile):
 
 ```powershell
-npm run admin -w backend -- grant you@example.com    # also: revoke <email>, list
+npm run admin -w backend -- grant you@example.com    # also: revoke <email>, reset-mfa <email>, list
 ```
 
 ## Checks

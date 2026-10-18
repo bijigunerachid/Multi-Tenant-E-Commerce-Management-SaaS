@@ -14,10 +14,12 @@ export function createSessionStore({ redis, idleSeconds, absoluteSeconds }) {
   const sessionKey = (hash) => `sess:${hash}`;
   const userKey = (userId) => `user-sessions:${userId}`;
 
-  async function create({ userId, activeOrganizationId }) {
+  /** `extra`: further session fields (two-factor state, see auth/mfa.service.js). */
+  async function create({ userId, activeOrganizationId, ...extra }) {
     const id = randomToken();
     const hash = sha256(id);
     const session = {
+      ...extra,
       userId,
       activeOrganizationId: activeOrganizationId ?? null,
       csrfToken: randomToken(),

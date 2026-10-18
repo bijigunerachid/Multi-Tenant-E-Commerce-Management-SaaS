@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigation, useSearchParams } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { ArchiveBoxIcon } from '@heroicons/react/24/outline';
@@ -104,7 +104,11 @@ export function InventoryPage() {
   };
   const [searchInput, setSearchInput] = useState(filters.search);
   const debouncedSearch = useDebouncedValue(searchInput);
+  // A click on a result while the search is settling wins: its navigation must not be
+  // replaced by the search box updating the URL.
+  const navigation = useNavigation();
   useEffect(() => {
+    if (navigation.state !== 'idle') return;
     if (debouncedSearch !== filters.search) update({ search: debouncedSearch });
     // Only react to the debounced text.
     // eslint-disable-next-line react-hooks/exhaustive-deps

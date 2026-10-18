@@ -38,7 +38,38 @@ that addresses it and how the control is tested.
   git history (`.dockerignore`).
 - **Configuration.** In production the API refuses to start with plain-http `APP_URL`, an
   `APP_URL` missing from `CORS_ORIGINS`, the in-memory or default local mail settings, or a
-  `RATE_LIMIT_SCALE` other than 1; outside production it refuses live Stripe keys.
+  `RATE_LIMIT_SCALE` other than 1, or a missing `MFA_ENCRYPTION_KEY`; outside production it
+  refuses live Stripe keys.
+
+## Two-factor sign-in
+
+Any user can turn on time-based codes (TOTP, RFC 6238: 6 digits, 30 seconds, SHA-1, as every
+authenticator app expects) from their profile. Platform admins must: every admin route answers
+`403 MFA_REQUIRED` unless the account has two-factor sign-in on and the current session passed
+it, so a stolen admin password alone opens nothing.
+
+- **Setup.** Needs the password. The secret (160 random bits) is shown once as a QR code and a
+  setup key, and only becomes active after a correct code proves the app has it. Turning it on
+  signs out every other session.
+- **Storage.** Secrets are encrypted with AES-256-GCM under `MFA_ENCRYPTION_KEY` (32 random
+  bytes, required in production), so a database dump alone does not give the codes. Recovery
+  codes (10, single use) are stored as SHA-256 hashes and shown once. A database CHECK keeps
+  "enabled" and "has a secret" in step.
+- **Sign-in.** A correct password with two-factor on starts a _pending_ session: it is good for
+  nothing but `POST /auth/mfa/verify`, lasts 5 minutes, and ends after 5 wrong codes
+  (`MFA_TOO_MANY_ATTEMPTS`). Success replaces it with a new session (new id, no fixation). Codes
+  from the previous, current or next 30-second step are accepted, and each step only once: the
+  last used step is saved with a conditional update, so two requests racing with the same code
+  cannot both win. Wrong codes are audited (`auth.mfa_failed`) and rate-limited per address.
+- **Turning it off or new recovery codes.** Need the password and a current code (or a recovery
+  code).
+- **Lost phone.** A recovery code signs in once. Without one, a platform admin can reset the
+  user's two-factor sign-in, with a reason, after checking who is asking; the reset ends the
+  user's sessions and is logged. Another admin's two-factor is reset only from the server
+  (`npm run admin -w backend -- reset-mfa <email>`, logged as `platform.mfa_reset`).
+- **Tests.** `tests/mfa.test.js` covers setup, pending sessions, replay (including a
+  deterministic race), the attempt limit, recovery codes and the admin requirement;
+  `utils/totp.test.js` checks the RFC test vectors and the encryption.
 
 ## Row-Level Security: evaluated, not enabled (yet)
 

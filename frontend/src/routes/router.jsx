@@ -76,6 +76,12 @@ const AdminOrganizationPage = page(
   'AdminOrganizationPage',
 );
 const PricingPage = page(() => import('../features/marketing/PricingPage.jsx'), 'PricingPage');
+const AdminUsersPage = page(() => import('../features/admin/AdminUsersPage.jsx'), 'AdminUsersPage');
+const AdminUserPage = page(() => import('../features/admin/AdminUserPage.jsx'), 'AdminUserPage');
+const AdminActivityPage = page(
+  () => import('../features/admin/AdminActivityPage.jsx'),
+  'AdminActivityPage',
+);
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -130,6 +136,9 @@ export const routes = [
                 children: [
                   { index: true, lazy: AdminOverviewPage },
                   { path: 'organizations/:organizationId', lazy: AdminOrganizationPage },
+                  { path: 'users', lazy: AdminUsersPage },
+                  { path: 'users/:userId', lazy: AdminUserPage },
+                  { path: 'activity', lazy: AdminActivityPage },
                 ],
               },
             ],

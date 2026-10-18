@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { apiFromPage, grantPlatformAdmin, registerAndOnboard, uniqueEmail } from './helpers.js';
+import {
+  PASSWORD,
+  apiFromPage,
+  enableTwoFactor,
+  grantPlatformAdmin,
+  nextCode,
+  registerAndOnboard,
+  uniqueEmail,
+} from './helpers.js';
 
 test('a platform admin suspends an organization, its owner is locked out, then it is restored', async ({
   browser,
@@ -24,6 +32,23 @@ test('a platform admin suspends an organization, its owner is locked out, then i
   expect((await apiFromPage(adminPage, 'GET', '/admin/stats')).status).toBe(403);
 
   expect(grantPlatformAdmin(adminEmail)).toContain('is now a platform administrator');
+  // The admin area needs two-factor sign-in: it says so until it is on.
+  await adminPage.goto('/admin');
+  await expect(adminPage.getByText('Turn on two-factor sign-in first')).toBeVisible();
+  const secret = await enableTwoFactor(adminPage);
+
+  // From now on, signing in takes the password and a code.
+  await adminPage.getByRole('button', { name: 'Open user menu' }).click();
+  await adminPage.getByRole('menuitem', { name: 'Sign out' }).click();
+  await adminPage.getByLabel('Email').fill(adminEmail);
+  await adminPage.getByLabel('Password').fill(PASSWORD);
+  await adminPage.getByRole('button', { name: 'Sign in' }).click();
+  await expect(adminPage.getByRole('heading', { name: 'Two-factor sign-in' })).toBeVisible();
+  await adminPage.getByLabel('Authentication code').fill(nextCode(secret));
+  await adminPage.getByRole('button', { name: 'Verify and sign in' }).click();
+  // Signed in: back in the app (on the page they left).
+  await expect(adminPage.getByRole('navigation', { name: 'Main' })).toBeVisible();
+
   await adminPage.goto('/settings/profile');
   await adminPage.getByRole('button', { name: 'Open user menu' }).click();
   await adminPage.getByRole('menuitem', { name: 'Platform admin' }).click();
@@ -73,4 +98,47 @@ test('a platform admin suspends an organization, its owner is locked out, then i
     ['admin.organization_reactivated', 'Dispute resolved'],
     ['admin.organization_suspended', 'Chargeback dispute, ticket 77'],
   ]);
+
+  // User management: the shop owner is disabled (signed out at once), then enabled again.
+  const ownerEmail = await ownerPage.evaluate(() =>
+    fetch('/api/v1/auth/me')
+      .then((r) => r.json())
+      .then((b) => b.data.user.email),
+  );
+  await adminPage
+    .getByRole('navigation', { name: 'Admin' })
+    .getByRole('link', { name: 'Users' })
+    .click();
+  await adminPage.getByLabel('Search users').fill(ownerEmail);
+  await adminPage.getByRole('link', { name: /Amina Haddad/ }).click();
+  await expect(adminPage.getByText(/owns Harbor Crafts/)).toBeVisible();
+  await adminPage.getByRole('button', { name: 'Disable account' }).click();
+  const disable = adminPage.getByRole('dialog', { name: 'Disable Amina Haddad?' });
+  await disable.getByLabel('Reason').fill('Suspicious sign-ins, ticket 78');
+  await disable.getByRole('button', { name: 'Disable account' }).click();
+  await expect(adminPage.getByText('Account disabled.')).toBeVisible();
+  // Signed out at once: the owner's next request is refused.
+  const afterDisable = await ownerPage.evaluate(() =>
+    fetch('/api/v1/products').then((r) => r.status),
+  );
+  expect(afterDisable).toBe(401);
+
+  await adminPage.getByRole('button', { name: 'Enable account' }).click();
+  const enable = adminPage.getByRole('dialog', { name: 'Enable Amina Haddad?' });
+  await enable.getByLabel('Reason').fill('Owner confirmed by phone');
+  await enable.getByRole('button', { name: 'Enable account' }).click();
+  await expect(adminPage.getByText('Account enabled.')).toBeVisible();
+
+  // Every step is in the platform activity log, with its reason.
+  await adminPage
+    .getByRole('navigation', { name: 'Admin' })
+    .getByRole('link', { name: 'Activity' })
+    .click();
+  await expect(adminPage.getByText('“Suspicious sign-ins, ticket 78”')).toBeVisible();
+  await expect(
+    adminPage
+      .getByRole('listitem')
+      .filter({ hasText: 'Platform admin role granted (server)' })
+      .first(),
+  ).toBeVisible();
 });

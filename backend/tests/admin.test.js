@@ -6,6 +6,9 @@ import {
   organizationWithAllRoles,
   productInput,
   setSubscription,
+  enableMfa,
+  lastEmailTo,
+  platformAdmin,
   signIn,
 } from './helpers/factories.js';
 import { ROLES } from '../src/modules/auth/permissions.js';
@@ -24,8 +27,7 @@ beforeEach(async () => {
   await resetState(ctx);
   A = await organizationWithAllRoles(ctx.app, ctx.prisma);
   B = await organizationWithAllRoles(ctx.app, ctx.prisma);
-  adminUser = await createUser(ctx.prisma, { platformRole: 'SUPER_ADMIN' });
-  admin = await signIn(ctx.app, adminUser);
+  ({ user: adminUser, client: admin } = await platformAdmin(ctx.app, ctx.prisma));
 });
 
 const platformRoutes = () => ctx.app.locals.routeTable.filter((r) => r.access.platform);
@@ -36,7 +38,7 @@ const days = (n) => new Date(Date.now() + n * 86_400_000).toISOString();
 describe('access', () => {
   test('every admin route refuses anonymous callers and every organization role, owners included', async () => {
     const routes = platformRoutes();
-    expect(routes.length).toBe(7);
+    expect(routes.length).toBe(15);
     const outsider = await signIn(ctx.app, await createUser(ctx.prisma));
     const callers = [
       ...ROLES.map((role) => [role, A.members[role].client]),
@@ -266,5 +268,131 @@ describe('audit information', () => {
       actor: { name: adminUser.name },
       metadata: { reason: REASON },
     });
+  });
+});
+
+describe('user management', () => {
+  const REASON_USER = 'Fraud report, ticket 5120';
+
+  test('users are found by name or email, with their organizations and last sign-in', async () => {
+    const target = A.members.MANAGER.user;
+    const res = await admin.get(`/admin/users?search=${encodeURIComponent(target.email)}`);
+    expect(res.body.meta.total).toBe(1);
+    expect(res.body.data[0]).toMatchObject({
+      email: target.email,
+      status: 'ACTIVE',
+      mfaEnabled: false,
+      organizations: 1,
+      lastSignInAt: expect.any(String),
+    });
+    const detail = await admin.get(`/admin/users/${target.id}`);
+    expect(detail.body.data.memberships).toEqual([
+      expect.objectContaining({
+        role: 'MANAGER',
+        organization: expect.objectContaining({ id: A.organization.id }),
+      }),
+    ]);
+    expect((await admin.get(`/admin/users/${randomUUID()}`)).status).toBe(404);
+  });
+
+  test('disabling ends every session and blocks sign-in until enabled again, with a reason', async () => {
+    const target = A.members.MANAGER;
+    const path = `/admin/users/${target.user.id}`;
+    expect((await admin.post(`${path}/disable`, {})).status).toBe(400);
+
+    const res = await admin.post(`${path}/disable`, { reason: REASON_USER });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('DISABLED');
+    expect((await target.client.get('/auth/me')).status).toBe(401);
+    const login = await apiClient(ctx.app).post('/auth/login', {
+      email: target.user.email,
+      password: 'correct-horse-battery',
+    });
+    expect(login.status).toBe(401);
+    expect((await admin.post(`${path}/disable`, { reason: REASON_USER })).status).toBe(409);
+
+    await admin.post(`${path}/enable`, { reason: 'Report was a mistake' });
+    expect((await signIn(ctx.app, target.user)).csrfToken).toBeTruthy();
+
+    const audit = await ctx.prisma.auditLog.findFirst({ where: { action: 'admin.user_disabled' } });
+    expect(audit).toMatchObject({
+      organizationId: null,
+      actorUserId: adminUser.id,
+      entityId: target.user.id,
+      metadata: { reason: REASON_USER, email: target.user.email, sessionsEnded: 1 },
+    });
+  });
+
+  test('an admin cannot disable themselves or another administrator', async () => {
+    const self = await admin.post(`/admin/users/${adminUser.id}/disable`, { reason: REASON_USER });
+    expect(self.body.error.code).toBe('CANNOT_CHANGE_SELF');
+    const other = await createUser(ctx.prisma, { platformRole: 'SUPER_ADMIN' });
+    const res = await admin.post(`/admin/users/${other.id}/disable`, { reason: REASON_USER });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('PLATFORM_ADMIN');
+    expect((await ctx.prisma.user.findUnique({ where: { id: other.id } })).status).toBe('ACTIVE');
+  });
+
+  test('signs a user out everywhere without disabling them', async () => {
+    const target = A.members.ANALYST;
+    const res = await admin.post(`/admin/users/${target.user.id}/sign-out`, {
+      reason: REASON_USER,
+    });
+    expect(res.body.data).toEqual({ sessionsEnded: 1 });
+    expect((await target.client.get('/auth/me')).status).toBe(401);
+    expect((await signIn(ctx.app, target.user)).csrfToken).toBeTruthy();
+  });
+
+  test('resends the confirmation email to unverified users only', async () => {
+    const unverified = await createUser(ctx.prisma, { emailVerifiedAt: null });
+    const res = await admin.post(`/admin/users/${unverified.id}/verification-email`);
+    expect(res.status).toBe(202);
+    expect((await lastEmailTo(ctx, unverified.email)).token).toBeTruthy();
+    const verified = await admin.post(`/admin/users/${A.members.OWNER.user.id}/verification-email`);
+    expect(verified.status).toBe(409);
+  });
+
+  test('resets two-factor sign-in for a user who lost their phone', async () => {
+    const target = A.members.ORDER_MANAGER.user;
+    await enableMfa(ctx.prisma, target);
+    const res = await admin.post(`/admin/users/${target.id}/mfa/reset`, { reason: REASON_USER });
+    expect(res.body.data.mfaEnabled).toBe(false);
+    const login = await apiClient(ctx.app).post('/auth/login', {
+      email: target.email,
+      password: 'correct-horse-battery',
+    });
+    expect(login.body.data.mfaRequired).toBeUndefined();
+  });
+});
+
+describe('platform activity', () => {
+  test('lists every admin action across organizations, with who, why and where', async () => {
+    await admin.post(`/admin/organizations/${A.organization.id}/suspend`, { reason: REASON });
+    await admin.post(`/admin/users/${B.members.ANALYST.user.id}/sign-out`, {
+      reason: 'Shared laptop',
+    });
+    await ctx.prisma.auditLog.create({
+      data: { action: 'platform.admin_granted', entityType: 'User', entityId: adminUser.id },
+    });
+    // Not admin actions: left out.
+    await A.members.OWNER.client.post('/products', productInput());
+
+    const res = await admin.get('/admin/activity');
+    expect(res.body.data.map((r) => r.action)).toEqual([
+      'platform.admin_granted',
+      'admin.user_signed_out',
+      'admin.organization_suspended',
+    ]);
+    const [, signOut, suspend] = res.body.data;
+    expect(signOut).toMatchObject({
+      reason: 'Shared laptop',
+      actor: { email: adminUser.email },
+      user: { email: B.members.ANALYST.user.email },
+    });
+    expect(suspend.organization).toEqual({ id: A.organization.id, name: A.organization.name });
+
+    const filtered = await admin.get('/admin/activity?action=admin.organization_suspended');
+    expect(filtered.body.meta.total).toBe(1);
+    expect((await admin.get('/admin/activity?action=auth.login')).status).toBe(400);
   });
 });

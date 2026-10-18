@@ -10,7 +10,8 @@ import {
 /** Requires a valid session for an active user. Sets req.user. */
 export function requireAuth({ prisma }) {
   return async function checkAuth(req, _res, next) {
-    if (!req.session) return next(unauthorized());
+    // A session waiting for its two-factor code is not signed in yet.
+    if (!req.session || req.session.mfaPending) return next(unauthorized());
 
     const user = await prisma.user.findUnique({ where: { id: req.session.userId } });
     if (!user || user.status !== 'ACTIVE') {
@@ -77,6 +78,18 @@ export function requireTenant({ prisma }) {
 export function requirePlatformRole(role) {
   return function checkPlatformRole(req, _res, next) {
     if (req.user.platformRole !== role) return next(forbidden());
+    // Platform administrators act on every customer: their sessions must have passed a
+    // second factor, which means it must be turned on.
+    if (!req.user.mfaEnabledAt || !req.session.mfaVerifiedAt) {
+      return next(
+        forbidden(
+          'MFA_REQUIRED',
+          req.user.mfaEnabledAt
+            ? 'Sign in again with your authenticator code to use the admin area.'
+            : 'Turn on two-factor sign-in in your profile to use the admin area.',
+        ),
+      );
+    }
     next();
   };
 }

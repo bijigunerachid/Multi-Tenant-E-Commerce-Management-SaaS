@@ -14,6 +14,7 @@ import { getApiError } from '../../lib/apiClient.js';
 import { changePassword, logoutEverywhere, updateProfile } from '../../services/authService.js';
 import { nameField, newPasswordField } from './schemas.js';
 import { useApplySession, useSession } from './useSession.js';
+import { TwoFactorCard } from './TwoFactorCard.jsx';
 
 const passwordSchema = z
   .object({
@@ -154,6 +155,7 @@ export function ProfilePage() {
         <Card title="Password" description="Changing it signs you out on every other device.">
           <PasswordForm />
         </Card>
+        <TwoFactorCard />
         <Card title="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-600">Sign out on every device, including this one.</p>

@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { apiFromPage, grantPlatformAdmin, registerAndOnboard, uniqueEmail } from './helpers.js';
+import {
+  apiFromPage,
+  enableTwoFactor,
+  grantPlatformAdmin,
+  registerAndOnboard,
+  uniqueEmail,
+} from './helpers.js';
 
 // Phone-width layout check. Wide content (tables, variant editors) must scroll inside its own
 // container; the page itself must never scroll sideways. This caught two real layout bugs:
@@ -81,7 +87,14 @@ test('no app page scrolls horizontally on a phone', async ({ page }) => {
   // The platform admin pages, as an administrator.
   const me = (await apiFromPage(page, 'GET', '/auth/me')).body.data;
   grantPlatformAdmin(me.user.email);
-  paths.push('/admin', `/admin/organizations/${me.activeOrganization.id}`);
+  await enableTwoFactor(page);
+  paths.push(
+    '/admin',
+    `/admin/organizations/${me.activeOrganization.id}`,
+    '/admin/users',
+    `/admin/users/${me.user.id}`,
+    '/admin/activity',
+  );
 
   for (const path of paths) {
     await page.goto(path);

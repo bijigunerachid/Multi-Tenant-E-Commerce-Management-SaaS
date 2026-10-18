@@ -45,6 +45,13 @@ const envSchema = z.object({
     .regex(/^whsec_[A-Za-z0-9]+$/, 'must be a Stripe webhook signing secret')
     .optional(),
 
+  // Encrypts authenticator secrets at rest: 32 random bytes, base64 (openssl rand -base64 32).
+  // Required in production; development uses a fixed key.
+  MFA_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, 'base64').length === 32, 'must be 32 bytes, base64-encoded')
+    .optional(),
+
   // Local directory for uploaded files (development). Kept outside any web-served folder.
   UPLOAD_DIR: z.string().min(1).default('uploads'),
 
@@ -105,6 +112,9 @@ export function loadEnv(source = process.env) {
     }
     if (env.MAIL_TRANSPORT !== 'smtp') {
       problems.push('MAIL_TRANSPORT: must be smtp in production (emails would never be sent)');
+    }
+    if (!env.MFA_ENCRYPTION_KEY) {
+      problems.push('MFA_ENCRYPTION_KEY: set 32 random bytes, base64 (openssl rand -base64 32)');
     }
     if (!source.SMTP_URL) {
       problems.push('SMTP_URL: set your mail provider (the default is a local test inbox)');

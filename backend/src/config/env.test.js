@@ -21,6 +21,7 @@ describe('loadEnv', () => {
       NODE_ENV: 'production',
       APP_URL: 'https://app.example.com',
       SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+      MFA_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
     };
     expect(() => loadEnv({ ...production, RATE_LIMIT_SCALE: '20' })).toThrow(/RATE_LIMIT_SCALE/);
     expect(loadEnv(production).RATE_LIMIT_SCALE).toBe(1);
@@ -39,8 +40,13 @@ describe('loadEnv', () => {
       NODE_ENV: 'production',
       APP_URL: 'https://app.example.com',
       SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+      MFA_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
     };
     expect(loadEnv(production).NODE_ENV).toBe('production');
+    expect(() => loadEnv({ ...production, MFA_ENCRYPTION_KEY: undefined })).toThrow(
+      /MFA_ENCRYPTION_KEY/,
+    );
+    expect(() => loadEnv({ ...production, MFA_ENCRYPTION_KEY: 'c2hvcnQ=' })).toThrow(/32 bytes/);
     expect(() => loadEnv({ ...production, APP_URL: 'http://app.example.com' })).toThrow(
       /APP_URL: must use https/,
     );

@@ -16,6 +16,7 @@ const REASON = 'Ticket 4182: owner asked for more time';
 function adminSession({ admin = true } = {}) {
   const s = sessionFixture();
   s.user.platformRole = admin ? 'SUPER_ADMIN' : 'NONE';
+  s.user.mfaEnabled = admin;
   return s;
 }
 
@@ -245,5 +246,119 @@ describe('members of a suspended organization', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open Casablanca Ceramics' }));
     await waitFor(() => expect(orgService.switchOrganization).toHaveBeenCalledWith('org-2'));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  });
+});
+
+describe('platform control', () => {
+  const USER_ID = '22222222-2222-4222-8222-222222222222';
+  const person = (overrides = {}) => ({
+    id: USER_ID,
+    name: 'Karim Tazi',
+    email: 'karim@example.com',
+    status: 'ACTIVE',
+    emailVerified: true,
+    platformRole: 'NONE',
+    mfaEnabled: true,
+    createdAt: '2026-09-01T10:00:00Z',
+    lastSignInAt: '2026-10-17T09:00:00Z',
+    memberships: [
+      {
+        id: 'm1',
+        role: 'OWNER',
+        status: 'ACTIVE',
+        organization: { id: ORG_ID, name: 'Atlas Outfitters', status: 'ACTIVE' },
+      },
+    ],
+    ...overrides,
+  });
+
+  test('administrators without two-factor sign-in are sent to set it up', async () => {
+    const s = adminSession();
+    s.user.mfaEnabled = false;
+    vi.mocked(authService.getSession).mockResolvedValue(s);
+    renderRoute('/admin/users');
+    expect(await screen.findByText('Turn on two-factor sign-in first')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Set it up in your profile' })).toHaveAttribute(
+      'href',
+      '/settings/profile',
+    );
+    expect(adminService.listUsers).not.toHaveBeenCalled();
+  });
+
+  test('lists users with what matters at a glance', async () => {
+    vi.mocked(adminService.listUsers).mockResolvedValue({
+      data: [{ ...person(), status: 'DISABLED', emailVerified: false, organizations: 2 }],
+      meta: { page: 1, pageSize: 25, total: 1 },
+    });
+    renderRoute('/admin/users');
+    const row = await screen.findByRole('link', { name: /Karim Tazi/ });
+    expect(row).toHaveAttribute('href', `/admin/users/${USER_ID}`);
+    expect(row).toHaveTextContent('2 organizations');
+    for (const badge of ['Disabled', 'Email not confirmed', 'Two-factor']) {
+      expect(within(row).getByText(badge)).toBeVisible();
+    }
+    expect(screen.getByRole('navigation', { name: 'Admin' })).toBeVisible();
+  });
+
+  test('disabling an owner warns about their organization and needs a reason', async () => {
+    vi.mocked(adminService.getAdminUser).mockResolvedValue(person());
+    vi.mocked(adminService.disableUser).mockResolvedValue(person({ status: 'DISABLED' }));
+    renderRoute(`/admin/users/${USER_ID}`);
+    expect(await screen.findByText(/owns Atlas Outfitters/)).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Disable account' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Disable Karim Tazi?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Disable account' }));
+    expect(await within(dialog).findByText('Give a reason (at least 5 characters)')).toBeVisible();
+    await userEvent.type(within(dialog).getByLabelText('Reason'), 'Fraud report 5120');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Disable account' }));
+    await waitFor(() =>
+      expect(adminService.disableUser).toHaveBeenCalledWith(USER_ID, 'Fraud report 5120'),
+    );
+    expect(await screen.findByText('Account disabled.')).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Enable account' })).toBeVisible();
+  });
+
+  test('offers no actions on another administrator', async () => {
+    vi.mocked(adminService.getAdminUser).mockResolvedValue(
+      person({ platformRole: 'SUPER_ADMIN', memberships: [] }),
+    );
+    renderRoute(`/admin/users/${USER_ID}`);
+    expect(await screen.findByText(/managed from the server/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Disable account' })).not.toBeInTheDocument();
+  });
+
+  test('the activity log says who did what, where, and why', async () => {
+    vi.mocked(adminService.listPlatformActivity).mockResolvedValue({
+      data: [
+        {
+          id: 'a1',
+          action: 'admin.user_disabled',
+          reason: 'Fraud report 5120',
+          actor: { email: 'staff@vendora.example' },
+          organization: null,
+          user: { id: USER_ID, email: 'karim@example.com' },
+          createdAt: '2026-10-18T09:00:00Z',
+        },
+        {
+          id: 'a2',
+          action: 'platform.admin_granted',
+          reason: null,
+          actor: null,
+          organization: null,
+          user: { id: 'u2', email: 'staff@vendora.example' },
+          createdAt: '2026-10-17T09:00:00Z',
+        },
+      ],
+      meta: { page: 1, pageSize: 30, total: 2 },
+    });
+    renderRoute('/admin/activity');
+    const first = (await screen.findByText('Disabled an account', { selector: 'p' })).closest('li');
+    expect(first).toHaveTextContent('staff@vendora.example on karim@example.com');
+    expect(first).toHaveTextContent('“Fraud report 5120”');
+    const second = screen
+      .getByText('Platform admin role granted (server)', { selector: 'p' })
+      .closest('li');
+    expect(second).toHaveTextContent('Server command line for staff@vendora.example');
   });
 });

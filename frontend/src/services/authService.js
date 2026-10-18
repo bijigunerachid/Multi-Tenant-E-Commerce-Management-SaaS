@@ -20,3 +20,15 @@ export const verifyEmail = (token) => apiClient.post('/auth/email/verify', { tok
 export const resendVerification = () => apiClient.post('/auth/email/resend');
 export const requestPasswordReset = (body) => apiClient.post('/auth/password/forgot', body);
 export const resetPassword = (body) => apiClient.post('/auth/password/reset', body);
+
+// Two-factor sign-in.
+/** Second sign-in step: { code } or { recoveryCode }. Returns the session. */
+export const verifyMfa = (body) => unwrap(apiClient.post('/auth/mfa/verify', body));
+export const getMfaStatus = () => unwrap(apiClient.get('/auth/mfa'));
+/** Returns { secret, otpauthUrl } for the authenticator app. */
+export const startMfaSetup = (password) => unwrap(apiClient.post('/auth/mfa/setup', { password }));
+/** Confirms setup with a code. Returns { recoveryCodes }. */
+export const enableMfa = (code) => unwrap(apiClient.post('/auth/mfa/enable', { code }));
+export const disableMfa = (body) => apiClient.post('/auth/mfa/disable', body);
+export const regenerateRecoveryCodes = (body) =>
+  unwrap(apiClient.post('/auth/mfa/recovery-codes', body));
