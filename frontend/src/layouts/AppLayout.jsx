@@ -9,6 +9,7 @@ import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   ChevronUpDownIcon,
+  CreditCardIcon,
   EnvelopeIcon,
   CubeIcon,
   HomeIcon,
@@ -23,6 +24,7 @@ import { CheckIcon, PlusIcon } from '@heroicons/react/20/solid';
 import { Logo } from './AuthLayout.jsx';
 import { useDismiss } from '../hooks/useDismiss.js';
 import { NotificationBell } from '../features/notifications/NotificationBell.jsx';
+import { SubscriptionBanner } from '../features/billing/SubscriptionBanner.jsx';
 import { useApplySession, useSession } from '../features/auth/useSession.js';
 import { logout } from '../services/authService.js';
 import { switchOrganization } from '../services/organizationService.js';
@@ -46,6 +48,7 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: ChartBarIcon, permission: 'report:read' },
   { to: '/employees', label: 'Employees', icon: UsersIcon, permission: 'member:read' },
   { to: '/settings/organization', label: 'Organization', icon: BuildingOfficeIcon },
+  { to: '/settings/billing', label: 'Billing', icon: CreditCardIcon, permission: 'billing:read' },
   { to: '/settings/emails', label: 'Email log', icon: EnvelopeIcon, permission: 'audit:read' },
   { to: '/settings/profile', label: 'Your profile', icon: UserCircleIcon },
 ];
@@ -378,6 +381,10 @@ export function AppLayout() {
           </div>
         </header>
         <main id="main" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <SubscriptionBanner
+            subscription={session.activeOrganization.subscription}
+            canManageBilling={permissions.includes('billing:read')}
+          />
           <Breadcrumbs />
           <Outlet />
         </main>

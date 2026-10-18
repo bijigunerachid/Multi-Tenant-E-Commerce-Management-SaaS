@@ -15,3 +15,7 @@ export const acceptOwnershipTransfer = () =>
   unwrap(apiClient.post('/organizations/current/ownership-transfer/accept'));
 
 export const listStores = () => unwrap(apiClient.get('/stores'));
+export const createStore = (body) => unwrap(apiClient.post('/stores', body));
+export const updateStore = (id, body) => unwrap(apiClient.patch(`/stores/${id}`, body));
+export const archiveStore = (id) => unwrap(apiClient.post(`/stores/${id}/archive`));
+export const restoreStore = (id) => unwrap(apiClient.post(`/stores/${id}/restore`));

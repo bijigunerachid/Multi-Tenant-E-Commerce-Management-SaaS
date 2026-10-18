@@ -91,6 +91,7 @@ export function reportRoutes(deps) {
           method: 'get',
           path: `/${report}/export`,
           access: { permission: 'report:export' },
+          feature: 'csvExport',
           afterAuth: [exportLimit],
           validate: { query },
           handler: (req, res) => reports.exportCsv(req, res, report, req.valid.query),

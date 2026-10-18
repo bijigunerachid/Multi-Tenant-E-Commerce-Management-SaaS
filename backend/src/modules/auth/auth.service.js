@@ -3,6 +3,7 @@ import { randomToken, sha256 } from '../../utils/crypto.js';
 import { hashPassword, verifyAgainstDummy, verifyPassword } from '../../utils/passwords.js';
 import { recordAudit } from '../../utils/audit.js';
 import { passwordResetMessage, verifyEmailMessage } from '../../services/emails.js';
+import { subscriptionContext } from '../billing/subscription.js';
 import { permissionsFor } from './permissions.js';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -39,7 +40,14 @@ export async function describeSession(prisma, req) {
     where: { userId: req.user.id, status: 'ACTIVE' },
     include: {
       organization: {
-        select: { id: true, name: true, slug: true, status: true, defaultCurrency: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          status: true,
+          defaultCurrency: true,
+          subscription: { include: { plan: true } },
+        },
       },
     },
     orderBy: { createdAt: 'asc' },
@@ -71,6 +79,13 @@ export async function describeSession(prisma, req) {
           defaultCurrency: active.organization.defaultCurrency,
           membershipId: active.id,
           permissions: permissionsFor(active.role),
+          // Every member sees whether the organization is read-only; details are in Billing.
+          subscription: (({ status, usable, planName, trialEndsAt }) => ({
+            status,
+            usable,
+            planName,
+            trialEndsAt,
+          }))(subscriptionContext(active.organization.subscription)),
         }
       : null,
     csrfToken: req.session.csrfToken,

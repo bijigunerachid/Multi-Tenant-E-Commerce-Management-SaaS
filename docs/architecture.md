@@ -269,7 +269,48 @@ worker, every NOTIFICATION_POLL_MS ──► claim one event (FOR UPDATE SKIP LO
   `GET|PUT /notifications/preferences`. All need `org:read` (every member) and act only on
   the caller's own notifications. The bell checks the unread count every 30 s.
 
-## 10. Trust boundaries
+## 10. Plans, trial and limits
+
+Every organization has one `Subscription` on a `SubscriptionPlan`. Plans are reference data
+created by a migration, so every environment has the same ones:
+
+| Plan    | Price (USD/month) | Active stores | Members | Products | CSV exports |
+| ------- | ----------------: | ------------: | ------: | -------: | :---------: |
+| Starter |             29.00 |             1 |       3 |      100 |             |
+| Growth  |             79.00 |             3 |      10 |    1,000 |      ✓      |
+| Scale   |            199.00 |            10 |      50 |   10,000 |      ✓      |
+
+- **Trial.** Onboarding starts a 14-day trial of Growth in the same transaction that creates
+  the organization. Organizations that existed before plans got the same trial, starting on
+  the day of the migration.
+- **States.** `TRIALING` and `ACTIVE` work normally. `PAST_DUE` (a failed payment, once billing
+  is connected) keeps working while the provider retries. `CANCELED` and `EXPIRED` make the
+  organization read-only.
+- **Expiry needs no job.** A trial past its end date is treated as `EXPIRED` on the next
+  request (`effectiveStatus`). The worker also writes `EXPIRED` every hour and audits it
+  (`subscription.trial_expired`), so the stored state and the audit log agree.
+- **Read-only mode.** The route builder refuses every non-GET tenant route with
+  `402 SUBSCRIPTION_INACTIVE`, unless the route declares `whenInactive: 'allow'`. Allowed:
+  routes that reduce usage or concern access (deactivate a member, revoke an invitation,
+  archive a store, ownership transfer, organization settings, notification read state).
+  Reads and exports keep working, so an organization can always get its data out. Joining
+  through an invitation is refused too. A generated test checks every route.
+- **Usage limits.** Active stores, members (active members plus pending invitations, so
+  accepting one never goes over) and non-archived products. Each check runs in the
+  transaction that adds the row, after a transaction-level advisory lock per organization and
+  resource, so concurrent requests cannot both take the last slot (tested with 6 at once).
+  Restoring an archived store or product counts as adding one. Going over gives
+  `402 PLAN_LIMIT_REACHED` with the limit, the current count and the plan.
+- **Features.** A route declares `feature: 'csvExport'`, and plans without it get
+  `402 PLAN_FEATURE_UNAVAILABLE`. A generated test checks every export route on Starter and
+  Growth.
+- **Who sees what.** The session tells every member the status (for the read-only banner).
+  The plan, usage and plan list are on the Billing page (`GET /subscriptions/current`,
+  `GET /subscriptions/plans`, `billing:read`, owners only).
+- **Not yet.** Changing plan and paying come with the payment provider (next step). Until
+  then the subscription changes only through the trial expiry.
+
+## 11. Trust boundaries
 
 1. **Browser → API.** Nothing from the browser is trusted: body, params, query and headers
    are all validated. The tenant comes from the session, never from the request.

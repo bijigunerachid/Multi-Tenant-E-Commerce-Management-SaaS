@@ -6,6 +6,7 @@ import { createMailer } from './services/mailer.js';
 import { createEmailQueue } from './jobs/emailQueue.js';
 import { createEmailWorker } from './jobs/emailWorker.js';
 import { createNotificationWorker } from './jobs/notifications.js';
+import { createSubscriptionWorker } from './jobs/subscriptions.js';
 import { createLocalStorage } from './services/storage.js';
 import { createApp } from './app.js';
 
@@ -21,9 +22,11 @@ const worker = inProcess
   ? createEmailWorker({ prisma, mailer: createMailer({ env }), logger, env })
   : null;
 const notifications = inProcess ? createNotificationWorker({ prisma, emails, logger, env }) : null;
+const subscriptions = inProcess ? createSubscriptionWorker({ prisma, logger }) : null;
 
 await Promise.all([prisma.$connect(), redis.connect(), emails.queue.waitUntilReady()]);
 await notifications?.start();
+subscriptions?.start();
 
 const app = createApp({ env, logger, prisma, redis, emails, storage });
 const server = app.listen(env.PORT, () => {
@@ -43,7 +46,7 @@ async function shutdown(signal) {
   forceExit.unref();
   server.close(async () => {
     // The workers finish the job they are running before closing.
-    await Promise.allSettled([worker?.close(), notifications?.close()]);
+    await Promise.allSettled([worker?.close(), notifications?.close(), subscriptions?.close()]);
     await Promise.allSettled([emails.close(), prisma.$disconnect(), redis.quit()]);
     process.exit(0);
   });

@@ -110,6 +110,16 @@ enum EmailDeliveryStatus {
   FAILED
 }
 
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+
+  @@map("subscription_status")
+}
+
 enum ProductStatus {
   DRAFT
   ACTIVE
@@ -196,6 +206,7 @@ model Organization {
   orderStatusHistory OrderStatusHistory[]
   reservations       InventoryReservation[]
   counter            OrganizationCounter?
+  subscription       Subscription?
 
   @@map("organizations")
 }
@@ -704,4 +715,51 @@ model Notification {
   @@unique([eventId, membershipId])
   @@index([organizationId, membershipId, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+/// A plan Vendora sells. Reference data, created by migrations (not by the seed), so every
+/// environment has the same plans. Limits are enforced by the API; see modules/billing.
+model SubscriptionPlan {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String   @unique @db.VarChar(40)
+  name            String   @db.VarChar(80)
+  priceMonthly    Decimal  @map("price_monthly") @db.Decimal(12, 2)
+  currency        String   @db.Char(3)
+  /// { stores, members, products }: the most the plan allows of each.
+  limits          Json
+  /// { csvExport: boolean }
+  features        Json
+  /// The payment provider's price id (set when billing is connected).
+  providerPriceId String?  @map("provider_price_id") @db.VarChar(120)
+  isActive        Boolean  @default(true) @map("is_active")
+  position        Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+/// One per organization, created with it (a trial). Changed only by the trial-expiry job and,
+/// once billing is connected, by verified payment webhooks.
+model Subscription {
+  id                     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId         String             @unique @map("organization_id") @db.Uuid
+  planId                 String             @map("plan_id") @db.Uuid
+  status                 SubscriptionStatus
+  trialEndsAt            DateTime?          @map("trial_ends_at") @db.Timestamptz(3)
+  currentPeriodEnd       DateTime?          @map("current_period_end") @db.Timestamptz(3)
+  cancelAtPeriodEnd      Boolean            @default(false) @map("cancel_at_period_end")
+  provider               String?            @db.VarChar(20)
+  providerCustomerId     String?            @map("provider_customer_id") @db.VarChar(120)
+  providerSubscriptionId String?            @unique @map("provider_subscription_id") @db.VarChar(120)
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([status, trialEndsAt])
+  @@map("subscriptions")
 }

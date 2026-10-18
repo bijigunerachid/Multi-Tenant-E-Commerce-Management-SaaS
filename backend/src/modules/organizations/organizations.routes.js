@@ -82,6 +82,7 @@ export function organizationRoutes(deps) {
         method: 'patch',
         path: '/current',
         access: { permission: 'org:update' },
+        whenInactive: 'allow',
         validate: {
           body: z
             .object({
@@ -108,6 +109,7 @@ export function organizationRoutes(deps) {
         method: 'post',
         path: '/current/ownership-transfer',
         access: { permission: 'org:transfer_ownership' },
+        whenInactive: 'allow',
         validate: {
           body: z.object({
             toMembershipId: uuidSchema,
@@ -121,12 +123,14 @@ export function organizationRoutes(deps) {
         method: 'delete',
         path: '/current/ownership-transfer',
         access: { permission: 'org:transfer_ownership' },
+        whenInactive: 'allow',
         handler: (req) => orgs.cancelTransfer(req),
       },
       {
         method: 'post',
         path: '/current/ownership-transfer/accept',
         access: { permission: 'org:read' },
+        whenInactive: 'allow',
         handler: (req) => orgs.acceptTransfer(req),
       },
     ],

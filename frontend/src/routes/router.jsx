@@ -64,6 +64,7 @@ const NotificationsPage = page(
   () => import('../features/notifications/NotificationsPage.jsx'),
   'NotificationsPage',
 );
+const BillingPage = page(() => import('../features/billing/BillingPage.jsx'), 'BillingPage');
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -204,6 +205,16 @@ export const routes = [
                     path: 'settings/organization',
                     lazy: OrganizationSettingsPage,
                     handle: { crumb: 'Organization settings' },
+                  },
+                  {
+                    element: <RequirePermission permission="billing:read" />,
+                    children: [
+                      {
+                        path: 'settings/billing',
+                        lazy: BillingPage,
+                        handle: { crumb: 'Billing' },
+                      },
+                    ],
                   },
                   {
                     element: <RequirePermission permission="audit:read" />,

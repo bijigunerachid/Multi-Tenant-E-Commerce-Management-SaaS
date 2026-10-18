@@ -23,6 +23,7 @@ import { orderRoutes } from './modules/orders/orders.routes.js';
 import { reportRoutes } from './modules/reports/reports.routes.js';
 import { emailRoutes } from './modules/emails/emails.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
+import { subscriptionRoutes } from './modules/billing/billing.routes.js';
 
 const MODULES = [
   authRoutes,
@@ -39,6 +40,7 @@ const MODULES = [
   reportRoutes,
   emailRoutes,
   notificationRoutes,
+  subscriptionRoutes,
 ];
 
 /**
