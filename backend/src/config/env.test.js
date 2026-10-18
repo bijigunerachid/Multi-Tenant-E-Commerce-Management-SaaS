@@ -1,4 +1,4 @@
-import { loadEnv } from './env.js';
+import { loadEnv, loadEnvFor } from './env.js';
 
 const valid = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5434/db',
@@ -26,6 +26,23 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, DATABASE_URL: undefined })).toThrow(/DATABASE_URL/);
     expect(() => loadEnv({ ...valid, REDIS_URL: 'http://localhost' })).toThrow(/REDIS_URL/);
     expect(() => loadEnv({ ...valid, CORS_ORIGINS: 'not a url' })).toThrow(/CORS_ORIGINS/);
+  });
+
+  test('scripts check only the settings they use', () => {
+    const databaseOnly = { DATABASE_URL: valid.DATABASE_URL };
+    // No Redis or CORS settings, as in CI or on a server shell: fine for a database script.
+    expect(loadEnvFor(['DATABASE_URL'], databaseOnly)).toEqual({
+      NODE_ENV: 'development',
+      DATABASE_URL: valid.DATABASE_URL,
+    });
+    expect(() => loadEnv(databaseOnly)).toThrow(/REDIS_URL/);
+    expect(() => loadEnvFor(['DATABASE_URL'], {})).toThrow(/DATABASE_URL/);
+    expect(() =>
+      loadEnvFor(['DATABASE_URL', 'STRIPE_SECRET_KEY'], {
+        ...databaseOnly,
+        STRIPE_SECRET_KEY: 'pk_test_abc123',
+      }),
+    ).toThrow(/STRIPE_SECRET_KEY/);
   });
 
   test('Stripe billing needs both Stripe values, and live keys only run in production', () => {

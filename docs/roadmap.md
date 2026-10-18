@@ -454,7 +454,7 @@ Step 3 (platform administration) verification:
   - the audit log refused without a reason, limited to the organization, and the access
     recorded where the owner sees it;
   - a suspended organization staying selected and working again once reactivated.
-- Backend: 270 tests.
+- Backend: 271 tests.
 - Sabotage checks, each caught: no platform role check; reading the audit log without
   recording it; changing a Stripe-billed subscription; an unbounded trial; free plans counted
   as revenue; search ignored.
@@ -476,3 +476,7 @@ Step 3 (platform administration) verification:
     the wrong box. Each field now gets its own id.
   - A visual review found empty bands around the members list and a cut-off search
     placeholder; both are fixed.
+  - CI caught what local runs could not: the admin CLI validated every API setting (Redis,
+    CORS), and CI has no `backend/.env`. Locally the gap was hidden because importing Prisma
+    loads `backend/.env` into the environment. Command-line scripts now validate only the
+    settings they use (`loadEnvFor`), with a test that runs without Redis or CORS settings.

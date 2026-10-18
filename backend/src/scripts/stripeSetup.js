@@ -1,6 +1,6 @@
 /* eslint-disable no-console -- a command-line script: printing is its output. */
 import Stripe from 'stripe';
-import { loadEnv } from '../config/env.js';
+import { loadEnvFor } from '../config/env.js';
 import { createPrismaClient } from '../config/database.js';
 import { PORTAL_CONFIGURATION_TAG, priceLookupKey } from '../services/billing/stripeProvider.js';
 
@@ -13,7 +13,7 @@ import { PORTAL_CONFIGURATION_TAG, priceLookupKey } from '../services/billing/st
 //   can switch between them, update their card, see invoices and cancel at period end.
 // Needs write access to Products, Prices and Customer Portal (a restricted key can be used).
 
-const env = loadEnv();
+const env = loadEnvFor(['DATABASE_URL', 'STRIPE_SECRET_KEY']);
 if (!env.STRIPE_SECRET_KEY) {
   console.error('Set STRIPE_SECRET_KEY in backend/.env first.');
   process.exit(1);

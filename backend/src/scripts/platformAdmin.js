@@ -1,5 +1,5 @@
 /* eslint-disable no-console -- a command-line script: printing is its output. */
-import { loadEnv } from '../config/env.js';
+import { loadEnvFor } from '../config/env.js';
 import { createPrismaClient } from '../config/database.js';
 
 // Grants or revokes Vendora's platform administrator role. There is deliberately no API for
@@ -13,7 +13,8 @@ import { createPrismaClient } from '../config/database.js';
 
 const [command, rawEmail] = process.argv.slice(2);
 const usage = 'Usage: npm run admin -w backend -- grant|revoke <email>, or: list';
-const env = loadEnv();
+// Only the database: the script runs on a server shell or in CI without the API's settings.
+const env = loadEnvFor(['DATABASE_URL']);
 const prisma = createPrismaClient({ databaseUrl: env.DATABASE_URL });
 
 try {
