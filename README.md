@@ -5,8 +5,8 @@ products, inventory, orders, employees, customers and analytics on one shared pl
 with strict tenant isolation and role-based access.
 
 > **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits, read-only mode and
-> Stripe payments (Checkout, Customer Portal, webhooks, invoices) and platform administration
-> work; production readiness is next. (CSV exports as background jobs were deferred from Phase 5.)
+> Stripe payments (Checkout, Customer Portal, webhooks, invoices), platform administration and
+> a public website (homepage and pricing) work; production readiness is next. (CSV exports as background jobs were deferred from Phase 5.)
 > Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
 > catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
 > end to end. The dashboard shows revenue, orders and stock alerts, and

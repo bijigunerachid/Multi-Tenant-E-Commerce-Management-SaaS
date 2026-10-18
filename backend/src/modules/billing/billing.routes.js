@@ -111,3 +111,30 @@ export function billingWebhookRouter(deps) {
   });
   return router;
 }
+
+/**
+ * GET /api/v1/plans: the plans on offer, for the public pricing page. Public on purpose: it
+ * holds only what the pricing page shows (names, prices, limits, features), never provider ids.
+ * The page reads it instead of repeating prices in the web app, so the two cannot disagree.
+ */
+export function publicPlanRoutes({ prisma }) {
+  return {
+    basePath: '/plans',
+    routes: [
+      {
+        method: 'get',
+        path: '/',
+        access: 'public',
+        handler: async (_req, res) => {
+          const plans = await prisma.subscriptionPlan.findMany({
+            where: { isActive: true },
+            orderBy: { position: 'asc' },
+          });
+          // Prices change rarely: browsers and proxies may reuse the answer for 5 minutes.
+          res.set('Cache-Control', 'public, max-age=300');
+          return plans.map(presentPlan);
+        },
+      },
+    ],
+  };
+}
