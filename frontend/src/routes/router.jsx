@@ -15,6 +15,7 @@ import {
   RequirePermission,
 } from './guards.jsx';
 import { NotFoundPage } from './NotFoundPage.jsx';
+import { MarketingLayout } from '../features/marketing/MarketingLayout.jsx';
 import { AdminLayout, RequirePlatformAdmin } from '../features/admin/AdminLayout.jsx';
 import { RouteErrorPage } from './RouteErrorPage.jsx';
 import { FullPageSpinner } from '../components/ui/Spinner.jsx';
@@ -74,6 +75,7 @@ const AdminOrganizationPage = page(
   () => import('../features/admin/AdminOrganizationPage.jsx'),
   'AdminOrganizationPage',
 );
+const PricingPage = page(() => import('../features/marketing/PricingPage.jsx'), 'PricingPage');
 const ReportsPage = page(() => import('../features/reports/ReportsPage.jsx'), 'ReportsPage');
 const OrderDetailPage = page(
   () => import('../features/orders/OrderDetailPage.jsx'),
@@ -87,6 +89,12 @@ export const routes = [
     hydrateFallbackElement: <FullPageSpinner />,
     children: [
       { path: '/status', element: <SystemStatusPage /> },
+
+      // Public site (the homepage itself is served at / by RequireAuth for visitors).
+      {
+        element: <MarketingLayout />,
+        children: [{ path: '/pricing', lazy: PricingPage }],
+      },
 
       // Signed-out visitors
       {

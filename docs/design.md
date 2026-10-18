@@ -37,6 +37,22 @@ Type: Figtree for the interface; JetBrains Mono only for codes read character by
 - **Words:** active verbs that say what happens ("Archive store", "Leave and discard
   changes"), the same name for an action through the whole flow, errors that say how to fix it.
 
+## Public site
+
+Visitors at `/` get the homepage (`features/marketing`); signed-in people get the app at the
+same address, and every other private page still sends visitors to sign in. `/pricing` is public
+for everyone. The rules above apply, plus:
+
+- **Only true statements.** Every claim describes something Vendora does today. No
+  testimonials, customer logos or usage figures until real ones exist.
+- **Prices from one place.** The pricing page, the homepage summary and the FAQ answers about
+  plans are built from `GET /api/v1/plans`, so they cannot disagree with Billing.
+- **The hero is the stockroom.** An inventory slice drawn with the app's own components,
+  labelled "Example". Its one moment of motion (a sale bringing a product to low stock) plays
+  only when motion is welcome; otherwise the settled state is shown.
+- **Sections are not a card kit.** Hairline-separated lists, the real order lifecycle, and the
+  real role table (mirroring `permissions.js`).
+
 ## Web Interface Guidelines: what is enforced where
 
 | Rule                                     | Where                                                        |

@@ -360,7 +360,9 @@ Steps, one branch each:
    (`feature/platform-admin`). ✅
 4. Interface refresh, "Stockroom" (`feature/ui-refresh`): a design system and a review against
    the Web Interface Guidelines. ✅ See [design.md](design.md).
-5. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
+5. Public website (`feature/public-site`): the homepage at `/` for visitors and a pricing page,
+   built from the live plans. ✅
+6. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
    RLS evaluation, accessibility pass, deployment and smoke tests.
 
 Step 1 (plans and limits) verification:
@@ -499,3 +501,20 @@ Step 4 (interface refresh) verification:
 - Frontend: 131 tests (a new one for the unsaved-changes warning; two label tests and a report
   test updated for "…" and the SKU label). E2E: 16 Playwright tests, including the phone-width
   check.
+
+Step 5 (public website) verification:
+
+- Visitors at `/` get the homepage instead of the sign-in page; signed-in people still get the
+  app (or onboarding) at the same address, and other private pages still redirect to sign in.
+  `/pricing` is public. The marketing pages load as their own chunks, so the app does not
+  download them.
+- A new public endpoint, `GET /api/v1/plans`, feeds the pricing page, the homepage summary and
+  the plan FAQ answers; a backend test checks it needs no session and exposes no provider ids.
+- Frontend: 8 new tests (the homepage for visitors and the app for members, prices and answers
+  from the API, the role table, redirects kept for other pages, the pricing page, its error
+  state, and the header for signed-in people). 139 in total.
+- E2E: `public-site.spec.js` reads the homepage (including the hero's low-stock moment), checks
+  the price from the real API, opens pricing and starts a trial; and checks both pages at phone
+  width. 18 Playwright tests.
+- A visual review at 1366 px and 390 px found the FAQ centred while everything else is
+  left-aligned; it now follows the page's left edge.

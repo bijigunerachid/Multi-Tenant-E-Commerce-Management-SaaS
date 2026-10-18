@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { LockClosedIcon } from '@heroicons/react/24/outline';
 import { useSession } from '../features/auth/useSession.js';
@@ -29,7 +30,14 @@ function SessionError({ error, onRetry }) {
   );
 }
 
-/** Signed-in users only. Others go to /login and come back afterwards. */
+const PublicHome = lazy(() =>
+  import('../features/marketing/PublicHome.jsx').then((m) => ({ default: m.PublicHome })),
+);
+
+/**
+ * Signed-in users only. Others go to /login and come back afterwards, except at the home
+ * address: there, visitors get the public homepage and members get the app.
+ */
 export function RequireAuth() {
   const session = useSession();
   const location = useLocation();
@@ -37,6 +45,13 @@ export function RequireAuth() {
   if (session.isError)
     return <SessionError error={session.error} onRetry={() => session.refetch()} />;
   if (!session.data) {
+    if (location.pathname === '/') {
+      return (
+        <Suspense fallback={<FullPageSpinner />}>
+          <PublicHome />
+        </Suspense>
+      );
+    }
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;
   }

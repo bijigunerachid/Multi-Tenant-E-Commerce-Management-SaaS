@@ -76,6 +76,22 @@ describe('trial', () => {
     expect(audit.metadata.trialEndsAt).toBeDefined();
   });
 
+  test('the public pricing endpoint lists the offered plans without signing in, and nothing private', async () => {
+    const res = await apiClient(ctx.app).get('/plans');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('public, max-age=300');
+    expect(res.body.data.map((p) => p.code)).toEqual(['starter', 'growth', 'scale']);
+    expect(res.body.data[1]).toEqual({
+      code: 'growth',
+      name: 'Growth',
+      priceMonthly: '79.00',
+      currency: 'USD',
+      limits: { stores: 3, members: 10, products: 1000 },
+      features: { csvExport: true },
+    });
+    expect(JSON.stringify(res.body)).not.toMatch(/price_|providerPriceId|test-tiny/);
+  });
+
   test('the offered plans are listed in order, without inactive ones', async () => {
     const res = await owner.get('/subscriptions/plans');
     expect(res.body.data.map((p) => [p.code, p.priceMonthly, p.features.csvExport])).toEqual([
