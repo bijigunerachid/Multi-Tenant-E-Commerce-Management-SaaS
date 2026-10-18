@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { getApiError } from '../../lib/apiClient.js';
 import { formatMoney } from '../../lib/format.js';
 import { listCustomers } from '../../services/customerService.js';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { searchSellableVariants } from '../../services/orderService.js';
 
 /**
@@ -24,13 +25,13 @@ function SearchPicker({ label, placeholder, queryKey, search, renderResult, onPi
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="block text-sm font-medium text-ink-800">
         {label}
       </label>
       <div className="relative mt-1.5">
         <MagnifyingGlassIcon
           aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-2.5 size-4 text-slate-400"
+          className="pointer-events-none absolute left-3 top-2.5 size-4 text-ink-400"
         />
         <input
           id={id}
@@ -39,13 +40,13 @@ function SearchPicker({ label, placeholder, queryKey, search, renderResult, onPi
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}
           autoComplete="off"
-          className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600"
+          className="block w-full rounded-md border-0 py-2 pl-9 pr-3 text-sm ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 focus:ring-2 focus:ring-brand-600"
         />
       </div>
       {debounced && (
-        <div className="mt-2 rounded-md border border-slate-200" aria-live="polite">
+        <div className="mt-2 rounded-md border border-ink-200" aria-live="polite">
           {results.isPending ? (
-            <p className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500">
+            <p className="flex items-center gap-2 px-3 py-2 text-sm text-ink-500">
               <Spinner className="size-4" /> Searching…
             </p>
           ) : results.isError ? (
@@ -53,9 +54,9 @@ function SearchPicker({ label, placeholder, queryKey, search, renderResult, onPi
               {getApiError(results.error).message}
             </p>
           ) : results.data.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-500">{emptyText}</p>
+            <p className="px-3 py-2 text-sm text-ink-500">{emptyText}</p>
           ) : (
-            <ul className="max-h-64 divide-y divide-slate-100 overflow-y-auto">
+            <ul className="max-h-64 divide-y divide-ink-100 overflow-y-auto">
               {results.data.map((r) => (
                 <li key={r.id ?? r.variantId}>
                   <button
@@ -64,7 +65,7 @@ function SearchPicker({ label, placeholder, queryKey, search, renderResult, onPi
                       onPick(r);
                       setText('');
                     }}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 focus-visible:bg-indigo-50 focus-visible:outline-none"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-brand-50 focus-visible:bg-brand-50 focus-visible:outline-none"
                   >
                     {renderResult(r)}
                   </button>
@@ -82,15 +83,15 @@ export function CustomerPicker({ onPick }) {
   return (
     <SearchPicker
       label="Find a customer"
-      placeholder="Name, email or phone"
+      placeholder="Name, email or phone…"
       queryKey={['customer-picker']}
       search={(q) => listCustomers({ search: q, pageSize: 6 }).then((r) => r.data)}
       emptyText="No customer matches. Add customers from the Customers page."
       onPick={onPick}
       renderResult={(c) => (
         <>
-          <span className="font-medium text-slate-900">{c.name}</span>
-          <span className="block text-xs text-slate-500">
+          <span className="font-medium text-ink-900">{c.name}</span>
+          <span className="block text-xs text-ink-500">
             {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact details'}
           </span>
         </>
@@ -103,7 +104,7 @@ export function ProductPicker({ storeId, onPick }) {
   return (
     <SearchPicker
       label="Add a product"
-      placeholder="Product name or SKU"
+      placeholder="Product name or SKU…"
       queryKey={['sellable-variants', storeId]}
       search={(q) => searchSellableVariants({ search: q, storeId, limit: 10 })}
       emptyText="No active product matches."
@@ -111,19 +112,19 @@ export function ProductPicker({ storeId, onPick }) {
       renderResult={(v) => (
         <span className="flex items-center justify-between gap-3">
           <span>
-            <span className="font-medium text-slate-900">{v.productName}</span>
+            <span className="font-medium text-ink-900">{v.productName}</span>
             {v.variantName !== 'Default' && (
-              <span className="text-slate-600"> · {v.variantName}</span>
+              <span className="text-ink-600"> · {v.variantName}</span>
             )}
-            <span className="block text-xs text-slate-500">{v.sku}</span>
+            <span className="mt-0.5 block text-xs text-ink-500">
+              <Sku>{v.sku}</Sku>
+            </span>
           </span>
           <span className="text-right">
-            <span className="block tabular-nums text-slate-900">
+            <span className="block tabular-nums text-ink-900">
               {formatMoney(v.price, v.currency)}
             </span>
-            <span
-              className={`block text-xs ${v.available > 0 ? 'text-slate-500' : 'text-red-600'}`}
-            >
+            <span className={`block text-xs ${v.available > 0 ? 'text-ink-500' : 'text-red-600'}`}>
               {v.available > 0 ? `${v.available} available` : 'Out of stock'}
             </span>
           </span>

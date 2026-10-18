@@ -37,7 +37,7 @@ export function SuspendedOrganizationPage({ session }) {
 
   return (
     <AuthLayout title={`${org.name} is suspended`}>
-      <div className="space-y-5 text-sm text-slate-700">
+      <div className="space-y-5 text-sm text-ink-700">
         <NoSymbolIcon aria-hidden="true" className="mx-auto size-10 text-red-500" />
         <p>
           Vendora has suspended this organization, so it cannot be used for now. Its data is kept.
@@ -47,7 +47,7 @@ export function SuspendedOrganizationPage({ session }) {
         </p>
         {others.length > 0 && (
           <div>
-            <p className="mb-2 font-medium text-slate-900">Your other organizations</p>
+            <p className="mb-2 font-medium text-ink-900">Your other organizations</p>
             <ul className="space-y-2">
               {others.map((o) => (
                 <li key={o.id}>

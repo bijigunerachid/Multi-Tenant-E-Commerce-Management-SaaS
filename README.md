@@ -20,6 +20,7 @@ with strict tenant isolation and role-based access.
 - [Architecture](docs/architecture.md): system shape, key decisions, request pipeline, roles and permissions, order state machine, trust boundaries
 - [Data model](docs/data-model.md): entities, relationships, constraints and invariants
 - [Security](docs/security.md): risk register and controls
+- [Design](docs/design.md): the "Stockroom" interface: tokens, type, rules and the Web Interface Guidelines review
 - [Roadmap](docs/roadmap.md): phases and acceptance criteria
 
 ## Stack

@@ -99,14 +99,19 @@ export function ProductImages({ product, editable }) {
               <img
                 src={img.url}
                 alt={img.altText ?? `${product.name}, image ${i + 1}`}
-                className="aspect-square w-full rounded-md object-cover ring-1 ring-slate-200"
+                // Intrinsic size reserves the square before the file loads (no layout shift).
+                width={320}
+                height={320}
+                loading="lazy"
+                decoding="async"
+                className="aspect-square w-full rounded-md object-cover ring-1 ring-ink-200"
               />
               {editable && (
                 <button
                   type="button"
                   onClick={() => setRemoving(img)}
                   aria-label={`Remove image ${i + 1}`}
-                  className="absolute right-1.5 top-1.5 rounded-md bg-white/90 p-1 text-slate-600 shadow-sm ring-1 ring-slate-200 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-indigo-600"
+                  className="absolute right-1.5 top-1.5 rounded-md bg-white/90 p-1 text-ink-600 ring-1 ring-ink-200 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-brand-600"
                 >
                   <TrashIcon aria-hidden="true" className="size-4" />
                 </button>

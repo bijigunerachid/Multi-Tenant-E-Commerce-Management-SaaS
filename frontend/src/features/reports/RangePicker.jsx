@@ -50,7 +50,7 @@ export function RangePicker({ range, current }) {
       <div
         role="group"
         aria-label="Date range"
-        className="flex flex-wrap gap-1 rounded-md bg-slate-100 p-1"
+        className="flex flex-wrap gap-1 rounded-md bg-ink-100 p-1"
       >
         {PRESETS.map((p) => (
           <button
@@ -59,9 +59,7 @@ export function RangePicker({ range, current }) {
             aria-pressed={range.days === p.days}
             onClick={() => range.setRange(p.days === DEFAULT_DAYS ? {} : { days: String(p.days) })}
             className={`rounded px-3 py-1.5 text-sm font-medium ${
-              range.days === p.days
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+              range.days === p.days ? 'bg-white text-ink-900' : 'text-ink-600 hover:text-ink-900'
             }`}
           >
             {p.label}
@@ -69,22 +67,22 @@ export function RangePicker({ range, current }) {
         ))}
       </div>
       <form onSubmit={applyCustom} className="flex flex-wrap items-end gap-2">
-        <label className="text-xs font-medium text-slate-600">
+        <label className="text-xs font-medium text-ink-600">
           From
           <input
             type="date"
             value={custom.from}
             onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
-            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
           />
         </label>
-        <label className="text-xs font-medium text-slate-600">
+        <label className="text-xs font-medium text-ink-600">
           To
           <input
             type="date"
             value={custom.to}
             onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
-            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+            className="mt-0.5 block rounded-md border-0 px-2 py-1.5 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
           />
         </label>
         <Button type="submit" size="sm" variant="secondary">

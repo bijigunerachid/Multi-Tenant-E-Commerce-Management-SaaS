@@ -18,6 +18,7 @@ import { listStores } from '../../services/organizationService.js';
 import { downloadReport, getReport } from '../../services/reportService.js';
 import { useHasPermission } from '../auth/useSession.js';
 import { RevenueChart } from '../dashboard/charts.jsx';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { RangePicker, useRange } from './RangePicker.jsx';
 
 const REPORTS = {
@@ -34,7 +35,7 @@ const REPORTS = {
 const GROUPINGS = { day: 'Day', week: 'Week', month: 'Month' };
 const PAGE_SIZE = 50;
 const selectClass =
-  'rounded-md border-0 py-1.5 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600';
+  'rounded-md border-0 py-1.5 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600';
 const th = 'px-3 py-3 text-right';
 const td = 'whitespace-nowrap px-3 py-2.5 text-right tabular-nums';
 
@@ -46,13 +47,13 @@ function periodText(row, groupBy) {
 function Table({ head, children, foot }) {
   return (
     <div className="relative -mx-5 -my-4 overflow-x-auto">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+      <table className="min-w-full divide-y divide-ink-200 text-sm">
+        <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
           <tr>{head}</tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
+        <tbody className="divide-y divide-ink-100">{children}</tbody>
         {foot && (
-          <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-900">
+          <tfoot className="border-t-2 border-ink-200 bg-ink-50 font-semibold text-ink-900">
             <tr>{foot}</tr>
           </tfoot>
         )}
@@ -136,7 +137,7 @@ function SalesReport({ data }) {
           }
         >
           {data.rows.map((r) => (
-            <tr key={r.periodStart} className={r.orders ? '' : 'text-slate-400'}>
+            <tr key={r.periodStart} className={r.orders ? '' : 'text-ink-400'}>
               <th scope="row" className="whitespace-nowrap px-5 py-2.5 text-left font-normal">
                 {periodText(r, data.range.groupBy)}
               </th>
@@ -208,12 +209,12 @@ function ProductsReport({ data, onPageChange }) {
               <th scope="row" className="px-5 py-2.5 text-left font-normal">
                 <Link
                   to={`/products/${r.productId}`}
-                  className="font-medium text-slate-900 hover:text-indigo-600"
+                  className="font-medium text-ink-900 hover:text-brand-600"
                 >
                   {r.productName}
                 </Link>
-                <span className="block text-xs text-slate-500">
-                  {r.sku}
+                <span className="block text-xs text-ink-500">
+                  <Sku>{r.sku}</Sku>
                   {r.variantName !== 'Default' && ` · ${r.variantName}`}
                 </span>
               </th>
@@ -270,7 +271,7 @@ function StoresReport({ data }) {
       >
         {data.rows.map((r) => (
           <tr key={r.storeId}>
-            <th scope="row" className="px-5 py-2.5 text-left font-medium text-slate-900">
+            <th scope="row" className="px-5 py-2.5 text-left font-medium text-ink-900">
               <span className="flex flex-wrap items-center gap-2">
                 {r.name}
                 {r.status !== 'ACTIVE' && <Badge>Archived</Badge>}
@@ -359,7 +360,7 @@ export function ReportsPage() {
         }
       />
       <div className="space-y-6">
-        <nav aria-label="Reports" className="flex gap-6 border-b border-slate-200">
+        <nav aria-label="Reports" className="flex gap-6 border-b border-ink-200">
           {Object.entries(REPORTS).map(([key, r]) => (
             <Link
               key={key}
@@ -368,8 +369,8 @@ export function ReportsPage() {
               aria-current={report === key ? 'page' : undefined}
               className={`-mb-px border-b-2 px-1 pb-3 text-sm font-medium ${
                 report === key
-                  ? 'border-indigo-600 text-indigo-700'
-                  : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  ? 'border-brand-600 text-brand-700'
+                  : 'border-transparent text-ink-600 hover:border-ink-300 hover:text-ink-900'
               }`}
             >
               {r.label}
@@ -380,7 +381,7 @@ export function ReportsPage() {
         <div className="flex flex-wrap items-end gap-3">
           <RangePicker key={`${range.from}-${range.to}`} range={range} current={d?.range} />
           {report !== 'stores' && (
-            <label className="text-xs font-medium text-slate-600">
+            <label className="text-xs font-medium text-ink-600">
               Store
               <select
                 value={storeId}
@@ -397,7 +398,7 @@ export function ReportsPage() {
             </label>
           )}
           {report === 'sales' && (
-            <label className="text-xs font-medium text-slate-600">
+            <label className="text-xs font-medium text-ink-600">
               Group by
               <select
                 value={groupBy}
@@ -446,7 +447,7 @@ export function ReportsPage() {
               <ProductsReport data={d} onPageChange={(p) => update({ page: String(p) })} />
             )}
             {report === 'stores' && <StoresReport data={d} />}
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-500">
               Sales count shipped and delivered orders by ship date, in the organization&apos;s time
               zone and default currency. Net sales exclude tax and shipping.
             </p>

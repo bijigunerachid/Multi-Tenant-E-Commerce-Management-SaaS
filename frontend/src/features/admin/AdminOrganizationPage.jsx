@@ -35,7 +35,7 @@ function ReasonField({ register, error, label = 'Reason', hint }) {
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="block text-sm font-medium text-ink-800">
         {label}
       </label>
       <textarea
@@ -43,7 +43,7 @@ function ReasonField({ register, error, label = 'Reason', hint }) {
         rows={3}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : `${id}-hint`}
-        className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+        className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-inset focus:ring-brand-600"
         {...register('reason')}
       />
       {error ? (
@@ -51,7 +51,7 @@ function ReasonField({ register, error, label = 'Reason', hint }) {
           {error}
         </p>
       ) : (
-        <p id={`${id}-hint`} className="mt-1.5 text-sm text-slate-500">
+        <p id={`${id}-hint`} className="mt-1.5 text-sm text-ink-500">
           {hint ?? "Recorded in the organization's audit log, which its owner can read."}
         </p>
       )}
@@ -298,16 +298,16 @@ function AuditLogCard({ organizationId }) {
         <Alert tone="error">{getApiError(logs.error).message}</Alert>
       ) : (
         <div className="space-y-4">
-          <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+          <ul className="-mx-5 divide-y divide-ink-100 border-y border-ink-100">
             {logs.data.data.map((r) => (
               <li key={r.id} className="px-5 py-2.5 text-sm">
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <code className="break-all text-xs font-medium text-slate-900">{r.action}</code>
-                  <time className="text-xs text-slate-500" dateTime={r.createdAt}>
+                  <code className="break-all text-xs font-medium text-ink-900">{r.action}</code>
+                  <time className="text-xs text-ink-500" dateTime={r.createdAt}>
                     {dateTime.format(new Date(r.createdAt))}
                   </time>
                 </span>
-                <span className="block break-words text-xs text-slate-500">
+                <span className="block break-words text-xs text-ink-500">
                   {r.actor ? (r.actor.email ?? r.actor.id) : 'System'}
                   {r.metadata?.reason ? ` · ${r.metadata.reason}` : ''}
                 </span>
@@ -375,19 +375,19 @@ export function AdminOrganizationPage() {
               <dl className="space-y-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <dt className="sr-only">Plan</dt>
-                  <dd className="text-base font-semibold text-slate-900">{sub.plan.name}</dd>
+                  <dd className="text-base font-semibold text-ink-900">{sub.plan.name}</dd>
                   <dt className="sr-only">Status</dt>
                   <dd>
                     <Badge tone={subLabel.tone}>{subLabel.label}</Badge>
                   </dd>
                 </div>
                 {sub.trialEndsAt && (
-                  <div className="text-slate-600">
+                  <div className="text-ink-600">
                     <dt className="inline">Trial ends: </dt>
                     <dd className="inline">{formatDate(sub.trialEndsAt)}</dd>
                   </div>
                 )}
-                <div className="text-slate-600">
+                <div className="text-ink-600">
                   <dt className="inline">Billing: </dt>
                   <dd className="inline">
                     {sub.billedByProvider
@@ -399,7 +399,7 @@ export function AdminOrganizationPage() {
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-slate-600">No subscription.</p>
+              <p className="text-sm text-ink-600">No subscription.</p>
             )}
           </Card>
           <Card title="Usage">
@@ -407,8 +407,8 @@ export function AdminOrganizationPage() {
               {[...Object.entries(RESOURCE_LABELS), ['orders', 'Orders placed']].map(
                 ([key, label]) => (
                   <div key={key}>
-                    <dt className="text-slate-500">{label}</dt>
-                    <dd className="text-lg font-semibold tabular-nums text-slate-900">
+                    <dt className="text-ink-500">{label}</dt>
+                    <dd className="text-lg font-semibold tabular-nums text-ink-900">
                       {o.usage[key].toLocaleString()}
                     </dd>
                   </div>
@@ -425,18 +425,18 @@ export function AdminOrganizationPage() {
         </div>
         <Card title="Members">
           {/* Edge to edge inside the card, without the card's own padding around the list. */}
-          <ul className="-mx-5 -my-4 divide-y divide-slate-100">
+          <ul className="-mx-5 -my-4 divide-y divide-ink-100">
             {o.members.map((m) => (
               <li
                 key={m.id}
                 className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-2.5 text-sm"
               >
                 <span className="min-w-0">
-                  <span className="block break-words font-medium text-slate-900">{m.name}</span>
-                  <span className="block break-all text-xs text-slate-500">{m.email}</span>
+                  <span className="block break-words font-medium text-ink-900">{m.name}</span>
+                  <span className="block break-all text-xs text-ink-500">{m.email}</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="text-slate-600">{ROLE_LABELS[m.role]}</span>
+                  <span className="text-ink-600">{ROLE_LABELS[m.role]}</span>
                   {m.status !== 'ACTIVE' && <Badge>Deactivated</Badge>}
                   {m.userStatus !== 'ACTIVE' && <Badge tone="danger">Account disabled</Badge>}
                 </span>

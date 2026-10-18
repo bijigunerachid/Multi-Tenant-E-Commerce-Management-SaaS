@@ -36,13 +36,10 @@ export function CustomerStats({ stats }) {
   return (
     <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((c) => (
-        <div
-          key={c.label}
-          className="rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm"
-        >
-          <dt className="text-sm text-slate-500">{c.label}</dt>
-          <dd className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{c.value}</dd>
-          {c.sub && <dd className="mt-0.5 text-xs text-slate-500">{c.sub}</dd>}
+        <div key={c.label} className="rounded-lg border border-ink-200 bg-white px-5 py-4">
+          <dt className="text-sm text-ink-500">{c.label}</dt>
+          <dd className="mt-1 text-xl font-semibold tabular-nums text-ink-900">{c.value}</dd>
+          {c.sub && <dd className="mt-0.5 text-xs text-ink-500">{c.sub}</dd>}
         </div>
       ))}
     </dl>
@@ -63,7 +60,7 @@ export function RecentOrders({ customer }) {
       title="Orders"
       actions={
         orders.data?.meta.total > RECENT && (
-          <Link to={allLink} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+          <Link to={allLink} className="text-sm font-medium text-brand-600 hover:text-brand-500">
             View all {orders.data.meta.total}
           </Link>
         )
@@ -85,7 +82,7 @@ export function RecentOrders({ customer }) {
       ) : orders.data.data.length === 0 ? (
         <EmptyState icon={ShoppingBagIcon} title="No orders yet" />
       ) : (
-        <ul className="-my-4 divide-y divide-slate-100">
+        <ul className="-my-4 divide-y divide-ink-100">
           {orders.data.data.map((o) => (
             <li
               key={o.id}
@@ -94,15 +91,15 @@ export function RecentOrders({ customer }) {
               <div className="flex items-center gap-3">
                 <Link
                   to={`/orders/${o.id}`}
-                  className="font-medium text-slate-900 hover:text-indigo-600"
+                  className="font-mono text-[0.8125rem] font-medium tabular-nums text-ink-900 hover:text-brand-600"
                 >
                   {o.number ? `#${o.number}` : 'Draft'}
                 </Link>
                 <Badge tone={ORDER_STATUS[o.status].tone}>{ORDER_STATUS[o.status].label}</Badge>
               </div>
-              <span className="flex items-center gap-4 text-slate-600">
+              <span className="flex items-center gap-4 text-ink-600">
                 <span>{o.placedAt ? formatDate(o.placedAt) : 'Not placed'}</span>
-                <span className="font-medium tabular-nums text-slate-900">
+                <span className="font-medium tabular-nums text-ink-900">
                   {formatMoney(o.total, o.currency)}
                 </span>
               </span>

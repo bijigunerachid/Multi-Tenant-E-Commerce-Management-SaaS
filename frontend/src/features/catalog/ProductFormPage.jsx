@@ -22,6 +22,7 @@ import {
 } from '../../services/catalogService.js';
 import { useHasPermission, useSession } from '../auth/useSession.js';
 import { ProductImages } from './ProductImages.jsx';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges.jsx';
 import {
   MAX_OPTIONS,
   emptyVariant,
@@ -36,8 +37,8 @@ const STATUS_OPTIONS = [
   { value: 'ARCHIVED', label: 'Archived' },
 ];
 const cellInput = (invalid) =>
-  `block w-full min-w-[6rem] rounded-md border-0 px-2.5 py-1.5 text-sm shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset disabled:bg-slate-50 ${
-    invalid ? 'ring-red-400 focus:ring-red-500' : 'ring-slate-300 focus:ring-indigo-600'
+  `block w-full min-w-[6rem] rounded-md border-0 px-2.5 py-1.5 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset disabled:bg-ink-50 ${
+    invalid ? 'ring-red-400 focus:ring-red-500' : 'ring-ink-300 focus:ring-brand-600'
   }`;
 
 function ProductForm({ product, categories, editable }) {
@@ -59,6 +60,7 @@ function ProductForm({ product, categories, editable }) {
   const variants = useFieldArray({ control, name: 'variants' });
   const optionNames = watch('optionNames');
   const [formError, handleError] = useServerErrors(setError);
+  const { prompt, allowNavigation } = useUnsavedChanges(isDirty);
 
   const save = useMutation({
     mutationFn: (values) =>
@@ -71,6 +73,7 @@ function ProductForm({ product, categories, editable }) {
         toast.success('Product saved.');
       } else {
         toast.success('Product created. You can now add images.');
+        allowNavigation();
         navigate(`/products/${saved.id}`, { replace: true });
       }
     },
@@ -104,6 +107,7 @@ function ProductForm({ product, categories, editable }) {
 
   return (
     <form noValidate onSubmit={handleSubmit((v) => save.mutate(v))} className="space-y-6">
+      {prompt}
       {formError && <Alert tone="error">{formError}</Alert>}
       <fieldset disabled={!editable} className="space-y-6">
         <Card title="Details">
@@ -114,15 +118,15 @@ function ProductForm({ product, categories, editable }) {
             <div className="sm:col-span-2">
               <label
                 htmlFor="product-description"
-                className="block text-sm font-medium text-slate-800"
+                className="block text-sm font-medium text-ink-800"
               >
-                Description <span className="font-normal text-slate-500">(optional)</span>
+                Description <span className="font-normal text-ink-500">(optional)</span>
               </label>
               <textarea
                 id="product-description"
                 rows={4}
                 aria-invalid={errors.description ? true : undefined}
-                className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-slate-50"
+                className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-inset focus:ring-brand-600 disabled:bg-ink-50"
                 {...register('description')}
               />
               {errors.description && (
@@ -179,7 +183,7 @@ function ProductForm({ product, categories, editable }) {
 
           <div className="relative -mx-5 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                 <tr>
                   {optionNames.map((name, i) => (
                     <th key={i} scope="col" className="px-3 py-2 first:pl-5">
@@ -205,7 +209,7 @@ function ProductForm({ product, categories, editable }) {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-ink-100">
                 {variants.fields.map((field, row) => {
                   const rowErrors = variantErrors[row] ?? {};
                   const cellError = (name) => rowErrors[name]?.message;
@@ -235,7 +239,7 @@ function ProductForm({ product, categories, editable }) {
                         </td>
                       ))}
                       {input('sku', 'SKU', {
-                        className: `${cellInput(Boolean(cellError('sku')))} uppercase`,
+                        className: `${cellInput(Boolean(cellError('sku')))} font-mono uppercase`,
                       })}
                       {input('price', 'Price', { inputMode: 'decimal', placeholder: '0.00' })}
                       {input('cost', 'Cost', { inputMode: 'decimal', placeholder: 'Optional' })}
@@ -280,7 +284,7 @@ function ProductForm({ product, categories, editable }) {
         <div className="flex justify-end gap-2">
           <Link
             to="/products"
-            className="rounded-md px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            className="rounded-md px-3.5 py-2 text-sm font-medium text-ink-700 hover:bg-ink-100"
           >
             Cancel
           </Link>

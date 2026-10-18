@@ -86,7 +86,7 @@ export function OnboardingPage() {
         <button
           type="button"
           onClick={() => signOut.mutate()}
-          className="font-medium text-slate-600 hover:text-slate-900"
+          className="font-medium text-ink-600 hover:text-ink-900"
         >
           Sign out ({session.user.email})
         </button>
@@ -94,12 +94,12 @@ export function OnboardingPage() {
     >
       {available.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-sm font-medium text-slate-800">Your organizations</h2>
-          <ul className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
+          <h2 className="text-sm font-medium text-ink-800">Your organizations</h2>
+          <ul className="mt-2 divide-y divide-ink-100 rounded-md border border-ink-200">
             {available.map((org) => (
               <li key={org.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{org.name}</p>
+                  <p className="truncate text-sm font-medium text-ink-900">{org.name}</p>
                   <Badge>{ROLE_LABELS[org.role]}</Badge>
                 </div>
                 <Button
@@ -113,7 +113,7 @@ export function OnboardingPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-sm text-slate-600">Or create a new organization:</p>
+          <p className="mt-4 text-sm text-ink-600">Or create a new organization:</p>
         </div>
       )}
 

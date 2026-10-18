@@ -58,7 +58,7 @@ function EmailPreferences({ organizationId }) {
       ) : preferences.isError ? (
         <Alert tone="error">{getApiError(preferences.error).message}</Alert>
       ) : preferences.data.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-600">
           Your role does not receive notifications in this organization.
         </p>
       ) : (
@@ -71,13 +71,13 @@ function EmailPreferences({ organizationId }) {
                 checked={pending[p.type] ?? p.email}
                 disabled={save.isPending}
                 onChange={(e) => toggle(p.type, e.target.checked)}
-                className="mt-0.5 size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                className="mt-0.5 size-4 rounded border-ink-300 text-brand-600 focus:ring-brand-600"
               />
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-slate-900">
+                <span className="block text-sm font-medium text-ink-900">
                   {TYPE_LABELS[p.type]?.label ?? p.type}
                 </span>
-                <span className="block text-sm text-slate-500">
+                <span className="block text-sm text-ink-500">
                   {TYPE_LABELS[p.type]?.description}
                 </span>
               </span>
@@ -142,8 +142,8 @@ export function NotificationsPage() {
                   onClick={() => update({ filter: f.value, page: null })}
                   className={`rounded-full px-3 py-1 text-sm font-medium ${
                     filter === f.value
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-ink-100 text-ink-700 hover:bg-ink-200'
                   }`}
                 >
                   {f.label}
@@ -172,7 +172,7 @@ export function NotificationsPage() {
               />
             ) : (
               <div className="space-y-4">
-                <ul className="-mx-5 divide-y divide-slate-100 border-y border-slate-100">
+                <ul className="-mx-5 divide-y divide-ink-100 border-y border-ink-100">
                   {list.data.data.map((n) => (
                     <li key={n.id}>
                       <NotificationItem

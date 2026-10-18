@@ -18,21 +18,22 @@ import { listOrders } from '../../services/orderService.js';
 import { useHasPermission, useSession } from '../auth/useSession.js';
 import { ORDER_STATUS } from '../orders/orderLabels.js';
 import { RangePicker, useRange } from '../reports/RangePicker.jsx';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { RevenueChart, TopProductsChart } from './charts.jsx';
 
 const time = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
 
 function Change({ value, previousLabel }) {
   if (value === null || value === undefined) {
-    return <span className="text-slate-500">Nothing to compare with in the {previousLabel}</span>;
+    return <span className="text-ink-500">Nothing to compare with in the {previousLabel}</span>;
   }
   const Icon = value > 0 ? ArrowUpRightIcon : value < 0 ? ArrowDownRightIcon : MinusIcon;
-  const tone = value > 0 ? 'text-emerald-700' : value < 0 ? 'text-red-700' : 'text-slate-600';
+  const tone = value > 0 ? 'text-emerald-700' : value < 0 ? 'text-red-700' : 'text-ink-600';
   return (
     <span className={`inline-flex items-center gap-0.5 ${tone}`}>
       <Icon aria-hidden="true" className="size-4" />
       {value > 0 ? '+' : ''}
-      {value}% <span className="ml-1 text-slate-500">vs {previousLabel}</span>
+      {value}% <span className="ml-1 text-ink-500">vs {previousLabel}</span>
     </span>
   );
 }
@@ -40,16 +41,16 @@ function Change({ value, previousLabel }) {
 function KpiTile({ label, value, children, to }) {
   const body = (
     <>
-      <dt className="text-sm text-slate-500">{label}</dt>
-      <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value}</dd>
+      <dt className="text-sm text-ink-500">{label}</dt>
+      <dd className="mt-1 text-2xl font-semibold tabular-nums text-ink-900">{value}</dd>
       {children && <dd className="mt-1 text-xs">{children}</dd>}
     </>
   );
-  const className = 'block rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm';
+  const className = 'block rounded-lg border border-ink-200 bg-white px-5 py-4';
   return to ? (
     <Link
       to={to}
-      className={`${className} hover:border-indigo-300 focus-visible:outline-2 focus-visible:outline-indigo-600`}
+      className={`${className} hover:border-brand-300 focus-visible:outline-2 focus-visible:outline-brand-600`}
     >
       {body}
     </Link>
@@ -67,7 +68,7 @@ function RecentOrders() {
     <Card
       title="Recent orders"
       actions={
-        <Link to="/orders" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+        <Link to="/orders" className="text-sm font-medium text-brand-600 hover:text-brand-500">
           All orders
         </Link>
       }
@@ -79,19 +80,17 @@ function RecentOrders() {
       ) : orders.data.data.length === 0 ? (
         <EmptyState icon={ShoppingBagIcon} title="No orders yet" />
       ) : (
-        <ul className="-my-4 divide-y divide-slate-100">
+        <ul className="-my-4 divide-y divide-ink-100">
           {orders.data.data.map((o) => (
             <li key={o.id} className="flex items-center justify-between gap-3 py-3 text-sm">
               <div className="min-w-0">
                 <Link
                   to={`/orders/${o.id}`}
-                  className="font-medium text-slate-900 hover:text-indigo-600"
+                  className="font-mono text-[0.8125rem] font-medium tabular-nums text-ink-900 hover:text-brand-600"
                 >
                   {o.number ? `#${o.number}` : 'Draft'}
                 </Link>
-                <p className="truncate text-xs text-slate-500">
-                  {o.customer?.name ?? 'No customer'}
-                </p>
+                <p className="truncate text-xs text-ink-500">{o.customer?.name ?? 'No customer'}</p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <Badge tone={ORDER_STATUS[o.status].tone}>{ORDER_STATUS[o.status].label}</Badge>
@@ -188,7 +187,7 @@ export function DashboardPage() {
                 value={d.kpis.openOrders}
                 to={can('order:read') ? '/orders' : undefined}
               >
-                <span className="text-slate-500">Pending, confirmed or processing</span>
+                <span className="text-ink-500">Pending, confirmed or processing</span>
               </KpiTile>
             </dl>
 
@@ -229,7 +228,7 @@ export function DashboardPage() {
                   can('inventory:read') && (
                     <Link
                       to="/inventory?stock=attention"
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                      className="text-sm font-medium text-brand-600 hover:text-brand-500"
                     >
                       View all
                     </Link>
@@ -243,24 +242,22 @@ export function DashboardPage() {
                     description="No active product is at or below its low-stock threshold."
                   />
                 ) : (
-                  <ul className="-my-4 divide-y divide-slate-100">
+                  <ul className="-my-4 divide-y divide-ink-100">
                     {d.inventoryAlerts.map((a) => (
                       <li
                         key={a.variantId}
                         className="flex items-center justify-between gap-3 py-3 text-sm"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-900">{a.productName}</p>
-                          <p className="text-xs text-slate-500">
-                            {a.sku}
+                          <p className="truncate font-medium text-ink-900">{a.productName}</p>
+                          <p className="text-xs text-ink-500">
+                            <Sku>{a.sku}</Sku>
                             {a.variantName !== 'Default' && ` · ${a.variantName}`} · threshold{' '}
                             {a.threshold}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
-                          <span className="tabular-nums text-slate-700">
-                            {a.available} available
-                          </span>
+                          <span className="tabular-nums text-ink-700">{a.available} available</span>
                           <Badge tone={a.status === 'OUT' ? 'danger' : 'warning'}>
                             {a.status === 'OUT' ? 'Out of stock' : 'Low stock'}
                           </Badge>
@@ -275,8 +272,8 @@ export function DashboardPage() {
               ) : (
                 <Card title="Catalog">
                   <dl className="text-sm">
-                    <dt className="text-slate-500">Active products</dt>
-                    <dd className="mt-1 text-2xl font-semibold text-slate-900">
+                    <dt className="text-ink-500">Active products</dt>
+                    <dd className="mt-1 text-2xl font-semibold text-ink-900">
                       {d.kpis.activeProducts}
                     </dd>
                   </dl>
@@ -284,7 +281,7 @@ export function DashboardPage() {
               )}
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-ink-500">
               Figures updated at {time.format(new Date(d.generatedAt))} and refreshed every minute.
               Revenue counts shipped and delivered orders by ship date; orders placed exclude
               cancellations.

@@ -16,9 +16,12 @@ import { formatMoney } from '../../lib/format.js';
 // Chart styling follows the data-viz method: one validated series colour (categorical slot 1),
 // 2px lines, recessive grid and axes in text ink, a hover tooltip on every mark, and a table
 // view so nothing depends on seeing the chart.
-const SERIES = '#2a78d6';
-const GRID = '#e2e8f0';
-const AXIS_TEXT = '#64748b';
+// Stockroom palette (src/index.css). The series green passes the dataviz palette checks
+// (lightness band, chroma floor, 3:1 against the card surface).
+const SERIES = '#1f8060';
+const GRID = '#dde3de'; // ink-200
+const AXIS_TEXT = '#64746c'; // ink-500
+const LABEL_TEXT = '#3a4741'; // ink-700
 
 const shortDate = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 const longDate = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
@@ -52,12 +55,12 @@ function TableToggle({ children, label }) {
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((v) => !v)}
-        className="text-sm font-medium text-slate-600 hover:text-slate-900"
+        className="text-sm font-medium text-ink-600 hover:text-ink-900"
       >
         {open ? 'Hide table' : `View ${label} as a table`}
       </button>
       {open && (
-        <div id={id} className="mt-2 max-h-72 overflow-auto rounded-md border border-slate-200">
+        <div id={id} className="mt-2 max-h-72 overflow-auto rounded-md border border-ink-200">
           {children}
         </div>
       )}
@@ -69,12 +72,12 @@ function TrendTooltip({ active, payload, currency, bucket }) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
   return (
-    <div className="rounded-md bg-white px-3 py-2 text-sm shadow-lg ring-1 ring-slate-200">
-      <p className="text-slate-600">{periodLabel(point.period, bucket)}</p>
-      <p className="font-semibold tabular-nums text-slate-900">
+    <div className="rounded-md bg-white px-3 py-2 text-sm shadow-lg ring-1 ring-ink-200">
+      <p className="text-ink-600">{periodLabel(point.period, bucket)}</p>
+      <p className="font-semibold tabular-nums text-ink-900">
         {formatMoney(point.revenue, currency)}
       </p>
-      <p className="text-slate-600">
+      <p className="text-ink-600">
         {point.orders} {point.orders === 1 ? 'order' : 'orders'} shipped
       </p>
     </div>
@@ -136,7 +139,7 @@ export function RevenueChart({ points, currency, bucket, showTable = true }) {
       {showTable && (
         <TableToggle label="revenue">
           <table className="min-w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="sticky top-0 bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
               <tr>
                 <th scope="col" className="px-3 py-2">
                   Period
@@ -149,7 +152,7 @@ export function RevenueChart({ points, currency, bucket, showTable = true }) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-ink-100">
               {points.map((p) => (
                 <tr key={p.period}>
                   <td className="px-3 py-1.5">{periodLabel(p.period, bucket)}</td>
@@ -188,12 +191,12 @@ export function TopProductsChart({ products, currency }) {
               type="category"
               dataKey="productName"
               width={120}
-              tick={{ fill: '#334155', fontSize: 12 }}
+              tick={{ fill: LABEL_TEXT, fontSize: 12 }}
               tickLine={false}
               axisLine={false}
             />
             <Tooltip
-              cursor={{ fill: '#f1f5f9' }}
+              cursor={{ fill: '#eceeeb' }}
               formatter={(value, _name, item) => [
                 `${formatMoney(value.toFixed(2), currency)} · ${item.payload.units} units`,
                 'Sales',
@@ -210,7 +213,7 @@ export function TopProductsChart({ products, currency }) {
                 dataKey="value"
                 position="right"
                 formatter={(v) => compactMoney(v, currency)}
-                style={{ fill: '#334155', fontSize: 12 }}
+                style={{ fill: LABEL_TEXT, fontSize: 12 }}
               />
             </Bar>
           </BarChart>
@@ -218,7 +221,7 @@ export function TopProductsChart({ products, currency }) {
       </div>
       <TableToggle label="top products">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
             <tr>
               <th scope="col" className="px-3 py-2">
                 Product
@@ -231,7 +234,7 @@ export function TopProductsChart({ products, currency }) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-ink-100">
             {products.map((p) => (
               <tr key={p.productId}>
                 <td className="px-3 py-1.5">{p.productName}</td>

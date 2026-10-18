@@ -105,6 +105,7 @@ function SettingsForm({ org, editable }) {
         <TextField
           label="Contact email"
           type="email"
+          autoComplete="off"
           error={errors.contactEmail?.message}
           {...register('contactEmail')}
         />
@@ -229,7 +230,7 @@ function OwnershipTransferCard() {
         </Alert>
       ) : isOwner ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-ink-600">
             Hand the organization over to another active member. You will become a store manager.
           </p>
           <Button variant="secondary" onClick={() => setStarting(true)}>
@@ -237,7 +238,7 @@ function OwnershipTransferCard() {
           </Button>
         </div>
       ) : (
-        <p className="text-sm text-slate-600">No ownership transfer is pending.</p>
+        <p className="text-sm text-ink-600">No ownership transfer is pending.</p>
       )}
 
       <Dialog

@@ -33,7 +33,7 @@ export function OverviewPage() {
             actions={
               <Link
                 to="/employees"
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-sm font-medium text-brand-600 hover:text-brand-500"
               >
                 Manage
               </Link>
@@ -46,14 +46,14 @@ export function OverviewPage() {
             ) : (
               <dl className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt className="text-slate-500">Active members</dt>
-                  <dd className="mt-1 text-2xl font-semibold text-slate-900">
+                  <dt className="text-ink-500">Active members</dt>
+                  <dd className="mt-1 text-2xl font-semibold text-ink-900">
                     {members.data.filter((m) => m.status === 'ACTIVE').length}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Deactivated</dt>
-                  <dd className="mt-1 text-2xl font-semibold text-slate-900">
+                  <dt className="text-ink-500">Deactivated</dt>
+                  <dd className="mt-1 text-2xl font-semibold text-ink-900">
                     {members.data.filter((m) => m.status !== 'ACTIVE').length}
                   </dd>
                 </div>

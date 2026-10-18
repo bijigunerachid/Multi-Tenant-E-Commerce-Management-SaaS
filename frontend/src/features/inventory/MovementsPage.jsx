@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { getApiError } from '../../lib/apiClient.js';
 import { listMovements } from '../../services/inventoryService.js';
+import { Sku } from '../../components/ui/Sku.jsx';
 import { MOVEMENT_TYPES, REASON_LABELS, signed } from './labels.js';
 
 const PAGE_SIZE = 50;
@@ -64,7 +65,7 @@ export function MovementsPage() {
             <select
               value={filters.type}
               onChange={(e) => update({ type: e.target.value })}
-              className="rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+              className="rounded-md border-0 py-2 pl-3 pr-8 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
             >
               <option value="">All movements</option>
               {Object.entries(MOVEMENT_TYPES).map(([value, t]) => (
@@ -75,13 +76,13 @@ export function MovementsPage() {
             </select>
           </label>
           {filters.variantId && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm text-indigo-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-sm text-brand-700">
               {filters.sku || 'One variant'}
               <button
                 type="button"
                 onClick={() => update({ variantId: '', sku: '' })}
                 aria-label="Show all variants"
-                className="rounded-full p-0.5 hover:bg-indigo-100"
+                className="rounded-full p-0.5 hover:bg-brand-100"
               >
                 <XMarkIcon aria-hidden="true" className="size-4" />
               </button>
@@ -110,7 +111,7 @@ export function MovementsPage() {
             action={
               <Link
                 to="/inventory"
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                className="text-sm font-medium text-brand-600 hover:text-brand-500"
               >
                 Go to inventory
               </Link>
@@ -119,8 +120,8 @@ export function MovementsPage() {
         ) : (
           <div className={`space-y-4 ${movements.isPlaceholderData ? 'opacity-60' : ''}`}>
             <div className="relative -mx-5 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-ink-200 text-sm">
+                <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                   <tr>
                     <th scope="col" className="px-5 py-3">
                       When
@@ -145,23 +146,23 @@ export function MovementsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-ink-100">
                   {movements.data.data.map((m) => {
                     const delta = m.onHandDelta !== 0 ? m.onHandDelta : m.reservedDelta;
                     return (
                       <tr key={m.id}>
-                        <td className="whitespace-nowrap px-5 py-3 text-slate-600">
+                        <td className="whitespace-nowrap px-5 py-3 text-ink-600">
                           {dateTime.format(new Date(m.createdAt))}
                         </td>
                         <td className="px-3 py-3">
                           <Link
                             to={`/products/${m.product.id}`}
-                            className="font-medium text-slate-900 hover:text-indigo-600"
+                            className="font-medium text-ink-900 hover:text-brand-600"
                           >
                             {m.product.name}
                           </Link>
-                          <p className="text-xs text-slate-500">
-                            {m.variant.sku} · {m.store.name}
+                          <p className="text-xs text-ink-500">
+                            <Sku>{m.variant.sku}</Sku> · {m.store.name}
                           </p>
                         </td>
                         <td className="px-3 py-3">
@@ -174,18 +175,16 @@ export function MovementsPage() {
                         >
                           {signed(delta)}
                           {m.onHandDelta === 0 && (
-                            <span className="block text-xs font-normal text-slate-500">
-                              reserved
-                            </span>
+                            <span className="block text-xs font-normal text-ink-500">reserved</span>
                           )}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums">{m.onHandAfter}</td>
-                        <td className="hidden px-3 py-3 text-slate-600 md:table-cell">
+                        <td className="hidden px-3 py-3 text-ink-600 md:table-cell">
                           {m.reason && <span className="block">{REASON_LABELS[m.reason]}</span>}
-                          {m.note && <span className="block text-xs text-slate-500">{m.note}</span>}
+                          {m.note && <span className="block text-xs text-ink-500">{m.note}</span>}
                           {!m.reason && !m.note && '—'}
                         </td>
-                        <td className="hidden px-5 py-3 text-slate-600 lg:table-cell">
+                        <td className="hidden px-5 py-3 text-ink-600 lg:table-cell">
                           {m.actor?.name ?? 'System'}
                         </td>
                       </tr>

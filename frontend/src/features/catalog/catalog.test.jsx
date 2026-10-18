@@ -87,6 +87,29 @@ describe('products list', () => {
 });
 
 describe('product editor', () => {
+  test('warns before leaving with unsaved changes, and leaves once confirmed', async () => {
+    signedInAs(OWNER);
+    vi.mocked(catalogService.listProducts).mockResolvedValue(page([]));
+    const { router } = renderRoute('/products/new');
+    await userEvent.type(await screen.findByLabelText('Product name'), 'Linen shirt');
+
+    await userEvent.click(screen.getByRole('link', { name: 'Cancel' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Leave without saving?' });
+    // Staying keeps the work.
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(router.state.location.pathname).toBe('/products/new');
+    expect(screen.getByLabelText('Product name')).toHaveValue('Linen shirt');
+
+    await userEvent.click(screen.getByRole('link', { name: 'Cancel' }));
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Leave without saving?' })).getByRole(
+        'button',
+        { name: 'Leave and discard changes' },
+      ),
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe('/products'));
+  });
+
   test('validates each variant row before sending anything', async () => {
     signedInAs(OWNER);
     renderRoute('/products/new');

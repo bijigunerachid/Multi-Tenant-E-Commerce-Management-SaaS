@@ -209,27 +209,27 @@ export function CategoriesPage() {
             action={editable && <Button onClick={() => setEditing('new')}>New category</Button>}
           />
         ) : (
-          <ul className="-my-4 divide-y divide-slate-100">
+          <ul className="-my-4 divide-y divide-ink-100">
             {rows.map((c) => (
               <li
                 key={c.id}
                 className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
               >
                 <div style={{ paddingLeft: `${c.depth * 1.5}rem` }}>
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-ink-900">
                     {c.depth > 0 && (
-                      <span aria-hidden="true" className="mr-1 text-slate-400">
+                      <span aria-hidden="true" className="mr-1 text-ink-400">
                         └
                       </span>
                     )}
                     {c.name}
                   </p>
-                  {c.description && <p className="text-slate-500">{c.description}</p>}
+                  {c.description && <p className="text-ink-500">{c.description}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <Link
                     to={`/products?categoryId=${c.id}`}
-                    className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100"
+                    className="rounded-md px-2 py-1 text-ink-600 hover:bg-ink-100"
                   >
                     {c.productCount} {c.productCount === 1 ? 'product' : 'products'}
                   </Link>

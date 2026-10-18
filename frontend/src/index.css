@@ -1,17 +1,117 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/jetbrains-mono';
 
+/*
+ * Vendora "Stockroom" design tokens.
+ * - brand (spruce): navigation, primary actions, links. The sidebar is brand-800.
+ * - ink: cool green-grey neutrals; ink-50 is the paper the workspace sits on.
+ * - amber: reserved for stock that needs attention. red is brick: errors and cancellations.
+ * Text pairs used in the UI meet WCAG AA (4.5:1): ink-500 on white 4.9, on paper 4.6;
+ * brand-600 on white 8.0; brand-100 on spruce 9.4.
+ * Fonts are served with the app (no third-party font requests): Figtree for the interface,
+ * JetBrains Mono only for codes people read character by character (SKUs, order numbers).
+ */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+
+  --color-brand-50: #eef4f1;
+  --color-brand-100: #d7e6de;
+  --color-brand-200: #b0cdbe;
+  --color-brand-300: #82ae99;
+  --color-brand-400: #528c73;
+  --color-brand-500: #2d6e56;
+  --color-brand-600: #1f5a47;
+  --color-brand-700: #194a3b;
+  --color-brand-800: #163c33;
+  --color-brand-900: #102c25;
+  --color-brand-950: #0a1d18;
+
+  --color-ink-50: #f5f7f4;
+  --color-ink-100: #eceeeb;
+  --color-ink-200: #dde3de;
+  --color-ink-300: #c3ccc6;
+  --color-ink-400: #94a29b;
+  --color-ink-500: #64746c;
+  --color-ink-600: #4d5c55;
+  --color-ink-700: #3a4741;
+  --color-ink-800: #27312c;
+  --color-ink-900: #18211e;
+  --color-ink-950: #0e1412;
+
+  --color-red-50: #fbf1ee;
+  --color-red-100: #f6ddd6;
+  --color-red-200: #edbbae;
+  --color-red-300: #e09481;
+  --color-red-400: #cf6a51;
+  --color-red-500: #bf4f35;
+  --color-red-600: #b3412e;
+  --color-red-700: #933424;
+  --color-red-800: #74291d;
+  --color-red-900: #5c2218;
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-ink-50 text-ink-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* No double-tap zoom delay on controls; pinch zoom stays available. */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+
+  /* Native selects follow the page colours (Windows high-contrast and dark modes otherwise
+     render unreadable option lists). */
+  select {
+    background-color: var(--color-white, #fff);
+    color: var(--color-ink-900);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   /* Browsers give <fieldset> min-inline-size: min-content, so a wide table inside one stretches
      the whole page on small screens instead of scrolling in its own container. */
   fieldset {
     min-width: 0;
+  }
+
+  /* Anchored headings stay clear of the sticky header. */
+  [id] {
+    scroll-margin-top: 5rem;
+  }
+
+  /* Reduced motion: no decorative movement. Spinners keep turning, since they are the only
+     sign that something is still loading. */
+  @media (prefers-reduced-motion: reduce) {
+    *:not(.animate-spin),
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

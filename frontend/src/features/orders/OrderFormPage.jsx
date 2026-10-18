@@ -18,6 +18,8 @@ import {
   updateOrder,
 } from '../../services/orderService.js';
 import { CustomerPicker, ProductPicker } from './pickers.jsx';
+import { Sku } from '../../components/ui/Sku.jsx';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges.jsx';
 import { previewTotals } from './orderLabels.js';
 
 const MONEY = /^\d{1,10}(\.\d{1,2})?$/;
@@ -106,6 +108,9 @@ function OrderForm({ order, initialCustomer }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [state, setState] = useState(() => initialState(order, initialCustomer));
+  // Anything different from what the form opened with is unsaved work.
+  const [initial] = useState(() => JSON.stringify(initialState(order, initialCustomer)));
+  const { prompt, allowNavigation } = useUnsavedChanges(JSON.stringify(state) !== initial);
   const [savedId, setSavedId] = useState(order?.id ?? null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
@@ -134,6 +139,7 @@ function OrderForm({ order, initialCustomer }) {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.setQueryData(['order', saved.id], saved);
       toast.success(place ? `Order #${saved.number} placed. Stock is reserved.` : 'Draft saved.');
+      allowNavigation();
       navigate(`/orders/${saved.id}`, { replace: true });
     },
     onError: (e) => {
@@ -185,6 +191,7 @@ function OrderForm({ order, initialCustomer }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+      {prompt}
       <div className="space-y-6 lg:col-span-2">
         {formError && <Alert tone="error">{formError}</Alert>}
 
@@ -204,7 +211,7 @@ function OrderForm({ order, initialCustomer }) {
             {state.lines.length > 0 && (
               <div className="relative -mx-5 overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <thead className="bg-ink-50 text-left text-[0.8125rem] font-semibold text-ink-600">
                     <tr>
                       <th scope="col" className="px-5 py-2">
                         Product
@@ -223,7 +230,7 @@ function OrderForm({ order, initialCustomer }) {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-ink-100">
                     {state.lines.map((l, i) => {
                       const qtyError =
                         errors[`items.${i}.quantity`] ?? errors[`items.${i}.variantId`];
@@ -231,9 +238,9 @@ function OrderForm({ order, initialCustomer }) {
                       return (
                         <tr key={l.variantId}>
                           <td className="px-5 py-2">
-                            <p className="font-medium text-slate-900">{l.productName}</p>
-                            <p className="text-xs text-slate-500">
-                              {l.sku}
+                            <p className="font-medium text-ink-900">{l.productName}</p>
+                            <p className="text-xs text-ink-500">
+                              <Sku>{l.sku}</Sku>
                               {l.variantName !== 'Default' && ` · ${l.variantName}`}
                             </p>
                           </td>
@@ -244,7 +251,7 @@ function OrderForm({ order, initialCustomer }) {
                               value={l.quantity}
                               onChange={(e) => updateLine(i, { quantity: e.target.value })}
                               aria-invalid={qtyError ? true : undefined}
-                              className={`block w-20 rounded-md border-0 px-2.5 py-1.5 text-sm ring-1 ring-inset focus:ring-2 ${qtyError ? 'ring-red-400' : 'ring-slate-300 focus:ring-indigo-600'}`}
+                              className={`block w-20 rounded-md border-0 px-2.5 py-1.5 text-sm ring-1 ring-inset focus:ring-2 ${qtyError ? 'ring-red-400' : 'ring-ink-300 focus:ring-brand-600'}`}
                             />
                             {qtyError ? (
                               <p className="mt-1 text-xs text-red-600">{qtyError}</p>
@@ -287,10 +294,10 @@ function OrderForm({ order, initialCustomer }) {
         <Card title="Customer and delivery">
           <div className="space-y-4">
             {state.customer ? (
-              <div className="flex items-start justify-between gap-3 rounded-md bg-slate-50 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3 rounded-md bg-ink-50 p-3 text-sm">
                 <div>
-                  <p className="font-medium text-slate-900">{state.customer.name}</p>
-                  <p className="text-slate-500">{state.customer.email ?? 'No email'}</p>
+                  <p className="font-medium text-ink-900">{state.customer.name}</p>
+                  <p className="text-ink-500">{state.customer.email ?? 'No email'}</p>
                 </div>
                 <Button
                   size="sm"
@@ -341,8 +348,8 @@ function OrderForm({ order, initialCustomer }) {
               />
             )}
             <div>
-              <label htmlFor="order-notes" className="block text-sm font-medium text-slate-800">
-                Notes <span className="font-normal text-slate-500">(optional)</span>
+              <label htmlFor="order-notes" className="block text-sm font-medium text-ink-800">
+                Notes <span className="font-normal text-ink-500">(optional)</span>
               </label>
               <textarea
                 id="order-notes"
@@ -350,7 +357,7 @@ function OrderForm({ order, initialCustomer }) {
                 value={state.notes}
                 onChange={(e) => set({ notes: e.target.value })}
                 maxLength={1000}
-                className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600"
+                className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-600"
               />
             </div>
           </div>
@@ -396,7 +403,7 @@ function OrderForm({ order, initialCustomer }) {
               ['Shipping', totals.shippingTotal, false],
             ].map(([label, value, negative]) => (
               <div key={label} className="flex justify-between">
-                <dt className="text-slate-600">{label}</dt>
+                <dt className="text-ink-600">{label}</dt>
                 <dd className="tabular-nums">
                   {!currency
                     ? '—'
@@ -406,14 +413,14 @@ function OrderForm({ order, initialCustomer }) {
                 </dd>
               </div>
             ))}
-            <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+            <div className="flex justify-between border-t border-ink-200 pt-2 text-base font-semibold">
               <dt>Total</dt>
               <dd className="tabular-nums">
                 {currency ? formatMoney(totals.total, currency) : '—'}
               </dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-ink-500">
             Estimated. The final amounts are calculated when the order is saved.
           </p>
           <div className="mt-5 flex flex-col gap-2">
@@ -434,7 +441,7 @@ function OrderForm({ order, initialCustomer }) {
             </Button>
             <Link
               to={savedId ? `/orders/${savedId}` : '/orders'}
-              className="py-1 text-center text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="py-1 text-center text-sm font-medium text-ink-600 hover:text-ink-900"
             >
               Cancel
             </Link>

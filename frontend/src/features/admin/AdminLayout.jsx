@@ -30,11 +30,11 @@ export function AdminLayout() {
   const { data: session } = useSession();
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-ink-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Link
             to="/admin"
-            className="rounded-md focus-visible:outline-2 focus-visible:outline-indigo-600"
+            className="rounded-md focus-visible:outline-2 focus-visible:outline-brand-600"
           >
             <Logo />
           </Link>
@@ -43,7 +43,7 @@ export function AdminLayout() {
           </span>
           <Link
             to={session.activeOrganization ? '/' : '/onboarding'}
-            className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
           >
             <ArrowLeftIcon aria-hidden="true" className="size-4" />
             Back to Vendora

@@ -358,7 +358,9 @@ Steps, one branch each:
    idempotent webhooks, billing history (`feature/stripe-billing`). ✅
 3. Platform administration: organizations, suspension, plan changes, stats
    (`feature/platform-admin`). ✅
-4. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
+4. Interface refresh, "Stockroom" (`feature/ui-refresh`): a design system and a review against
+   the Web Interface Guidelines. ✅ See [design.md](design.md).
+5. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
    RLS evaluation, accessibility pass, deployment and smoke tests.
 
 Step 1 (plans and limits) verification:
@@ -480,3 +482,20 @@ Step 3 (platform administration) verification:
     CORS), and CI has no `backend/.env`. Locally the gap was hidden because importing Prisma
     loads `backend/.env` into the environment. Command-line scripts now validate only the
     settings they use (`loadEnvFor`), with a test that runs without Redis or CORS settings.
+
+Step 4 (interface refresh) verification:
+
+- Direction chosen with the owner from three proposals: "Stockroom" (spruce, paper, amber for
+  stock only, SKUs as shelf labels). Tokens, type and rules are in [design.md](design.md).
+- Self-hosted fonts (`@fontsource-variable/figtree` and `jetbrains-mono` 5.3.0, pinned); colour
+  classes moved from Tailwind's stock indigo and slate to the token scales in 46 files; text
+  colour pairs checked against WCAG AA; the chart colour checked with the dataviz palette
+  validator (the first choice failed its chroma check and was replaced).
+- Web Interface Guidelines review: the findings and where each is now handled are listed in
+  design.md. New behaviour: an unsaved-changes warning on the product and order forms, and
+  error toasts that stay 10 s and pause on hover or focus.
+- Visual review at 1366 px and 390 px found all-caps table headers (now sentence case) and
+  status badges wrapping on phones (now kept on one line).
+- Frontend: 131 tests (a new one for the unsaved-changes warning; two label tests and a report
+  test updated for "…" and the SKU label). E2E: 16 Playwright tests, including the phone-width
+  check.
