@@ -4,9 +4,10 @@ A multi-tenant e-commerce management SaaS: independent businesses manage their s
 products, inventory, orders, employees, customers and analytics on one shared platform,
 with strict tenant isolation and role-based access.
 
-> **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits, read-only mode and
+> **Status:** feature-complete and ready to deploy; what remains is listed under "What's next"
+> in [docs/roadmap.md](docs/roadmap.md). Plans, a 14-day trial, usage limits, read-only mode and
 > Stripe payments (Checkout, Customer Portal, webhooks, invoices), platform administration and
-> a public website (homepage and pricing) work. It is ready to deploy: production images, a
+> a public website (homepage and pricing) work, with production images, a
 > production Compose stack, smoke tests and a runbook ([docs/deployment.md](docs/deployment.md)). (CSV exports as background jobs were deferred from Phase 5.)
 > Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
 > catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
@@ -24,7 +25,8 @@ with strict tenant isolation and role-based access.
 - [Design](docs/design.md): the "Stockroom" interface: tokens, type, rules and the Web Interface Guidelines review
 - [Deployment](docs/deployment.md): production setup, updates, backups, monitoring
 - [API reference](docs/openapi.json): OpenAPI 3.1, generated from the routes
-- [Roadmap](docs/roadmap.md): phases and acceptance criteria
+- [Roadmap](docs/roadmap.md): phases, acceptance criteria and what's next
+- [Contributing](CONTRIBUTING.md): workflow, checks, rules and checklists for new routes and screens
 
 ## Stack
 

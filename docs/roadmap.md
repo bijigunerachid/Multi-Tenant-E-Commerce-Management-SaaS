@@ -585,3 +585,44 @@ Step 7 (platform control) verification:
   a code, and manages a user). OpenAPI regenerated: 116 operations.
 - Visual check at 1366 px and 390 px: the setup key wrapped inside a group of four; it now
   breaks only between groups.
+
+## What's next
+
+The product works end to end and is ready to deploy. Two tracks remain; each item is a branch
+of its own (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
+
+### Track A: launch (to finish the product)
+
+In this order:
+
+1. **Server and domain.** A VPS with Docker (2 vCPU, 4 GB RAM is enough to start) and a domain
+   pointing at it. Then follow [deployment.md](deployment.md) step by step, including the
+   first platform admin with two-factor sign-in.
+2. **Email that arrives.** A transactional email provider (Postmark, Amazon SES, Brevo...) with
+   SPF, DKIM and DMARC set on the domain; put its SMTP address in `SMTP_URL`.
+3. **Backups running.** The daily `pg_dump` from deployment.md in cron, copied off the server,
+   and one test restore. `MFA_ENCRYPTION_KEY` stored apart from the dumps.
+4. **Monitoring.** An uptime check on `/api/v1/health/ready`, and error reporting (for example
+   Sentry) for the API, worker and web app.
+5. **Legal pages.** Terms of service, privacy policy (what data is kept, for how long, who
+   processes it: hosting, email, Stripe) and a cookie notice, linked from the public site and
+   the sign-up form. Have them reviewed by someone qualified for your country.
+6. **Live payments.** Activate the Stripe account, run `stripe:setup` with a live restricted
+   key, register the live webhook endpoint, and buy one plan yourself.
+
+### Track B: continue developing
+
+Ordered by value for the effort:
+
+1. **Account and data rights:** an owner can export all of the organization's data and close
+   the organization; a user can delete their account. Needed for GDPR-style requests.
+2. **CSV exports as background jobs** (deferred from Phase 5): large exports run in the worker
+   and arrive as a download link.
+3. **Languages:** French and Arabic (right-to-left) for the interface and emails.
+4. **Smaller API image** (about 758 MB today): a multi-stage build with production
+   dependencies only.
+5. **Organization webhooks and API keys,** so shops can connect their own tools.
+6. **Support access with consent:** an owner grants a platform admin temporary, logged access
+   to their organization, instead of sharing passwords.
+7. **Row-Level Security** as a fourth isolation layer, when the trade-offs in
+   [security.md](security.md#row-level-security-evaluated-not-enabled-yet) are worth it.
