@@ -41,11 +41,17 @@ Only ports 80 and 443 are open. The API, worker, database and Redis are on a pri
    cp .env.production.example .env.production
    chmod 600 .env.production
    openssl rand -base64 32 | tr -d '/+='   # run twice: database and Redis passwords
+   openssl rand -base64 32                 # MFA_ENCRYPTION_KEY, kept as printed
    ```
+
+   `MFA_ENCRYPTION_KEY` encrypts two-factor secrets. Keep a copy with the backups, apart from
+   the database dumps: without it, restored accounts cannot pass two-factor sign-in and need a
+   reset. Changing it has the same effect.
 
    `SITE_ADDRESS` is the domain, `APP_URL` and `CORS_ORIGINS` are `https://` + the domain. The API
    refuses to start with unsafe settings and says which ones: http instead of https, an origin
-   that does not match, email left on the test inbox, a live Stripe key outside production.
+   that does not match, email left on the test inbox, a live Stripe key outside production, a
+   missing `MFA_ENCRYPTION_KEY`.
 
 3. **Start:**
 
@@ -74,6 +80,10 @@ Only ports 80 and 443 are open. The API, worker, database and Redis are on a pri
    docker compose -f docker-compose.prod.yml --env-file .env.production \
      exec api npm run admin -- grant you@example.com
    ```
+
+   Then sign in, turn on two-factor sign-in under Your profile, and keep the recovery codes:
+   the admin area requires it. If an admin loses both their phone and their codes, reset it
+   from the server with `npm run admin -- reset-mfa <email>` the same way.
 
 ## Payments (Stripe, live)
 
@@ -152,6 +162,8 @@ the database, and notifications are delivered from the database).
 - Rebuild the images regularly (`up -d --build --pull always`) for base image fixes;
   CI runs `npm audit` and a secret scan on every push.
 - The Stripe key is a restricted key, and the webhook secret matches the live endpoint.
+- Every platform admin has two-factor sign-in on (required), and `MFA_ENCRYPTION_KEY` is
+  backed up apart from the database.
 
 ## Testing the production setup locally
 

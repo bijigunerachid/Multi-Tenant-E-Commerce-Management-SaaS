@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
+import { totp } from '../backend/src/utils/totp.js';
 
 export const PASSWORD = 'e2e-correct-horse-battery';
 
@@ -85,3 +86,26 @@ export function grantPlatformAdmin(email) {
     encoding: 'utf8',
   });
 }
+
+/**
+ * Turns on two-factor sign-in from the profile page, as a person would: reads the setup key
+ * shown under the QR code and answers with codes computed like an authenticator app.
+ * Returns the secret, for later sign-ins.
+ */
+export async function enableTwoFactor(page, password = PASSWORD) {
+  await page.goto('/settings/profile');
+  await page.getByRole('button', { name: 'Turn on' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Turn on two-factor sign-in' });
+  await dialog.getByLabel('Your password').fill(password);
+  await dialog.getByRole('button', { name: 'Continue' }).click();
+  const secret = (await dialog.getByTestId('mfa-setup-key').innerText()).replace(/\s/g, '');
+  await dialog.getByLabel('Code from the app').fill(totp(secret));
+  await dialog.getByRole('button', { name: 'Turn on' }).click();
+  await expect(page.getByRole('list', { name: 'Recovery codes' })).toBeVisible();
+  await page.getByRole('button', { name: 'I saved them' }).click();
+  await expect(page.getByText('Two-factor sign-in is on.')).toBeVisible();
+  return secret;
+}
+
+/** A code for the next 30-second step: the current one was just used, and is refused twice. */
+export const nextCode = (secret) => totp(secret, Date.now() + 30_000);

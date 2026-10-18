@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import { Logo } from '../../layouts/AuthLayout.jsx';
@@ -19,8 +19,33 @@ export function RequirePlatformAdmin() {
       </div>
     );
   }
+  // The API refuses admin requests without two-factor sign-in; say so before trying.
+  if (!data.user.mfaEnabled) {
+    return (
+      <div className="px-4 py-16">
+        <EmptyState
+          icon={ShieldCheckIcon}
+          title="Turn on two-factor sign-in first"
+          description="The admin area acts on every customer, so it needs a code from your authenticator app on top of your password."
+          action={
+            <Link
+              to="/settings/profile"
+              className="inline-flex rounded-md bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-500"
+            >
+              Set it up in your profile
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
   return <Outlet />;
 }
+
+const tabClass = ({ isActive }) =>
+  `rounded-md px-2.5 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-brand-600 ${
+    isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900'
+  }`;
 
 /**
  * The platform admin area has its own frame: it is not inside any organization, so it has no
@@ -49,6 +74,20 @@ export function AdminLayout() {
             Back to Vendora
           </Link>
         </div>
+        <nav
+          aria-label="Admin"
+          className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6 lg:px-8"
+        >
+          <NavLink to="/admin" end className={tabClass}>
+            Organizations
+          </NavLink>
+          <NavLink to="/admin/users" className={tabClass}>
+            Users
+          </NavLink>
+          <NavLink to="/admin/activity" className={tabClass}>
+            Activity
+          </NavLink>
+        </nav>
       </header>
       <main id="main" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <Outlet />

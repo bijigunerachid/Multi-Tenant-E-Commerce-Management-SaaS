@@ -364,6 +364,8 @@ Steps, one branch each:
    built from the live plans. ✅
 6. Production readiness, without deploying yet (`feature/production-ready`). ✅ Deployment
    itself waits for a server and a domain: [deployment.md](deployment.md) is the runbook.
+7. Platform control (`feature/platform-control`): user management across organizations, the
+   platform activity log, and two-factor sign-in, required for platform admins. ✅
 
 Step 1 (plans and limits) verification:
 
@@ -552,3 +554,34 @@ Step 6 (production readiness) verification:
   runs the smoke tests).
 - Row-Level Security: evaluated and deferred, with the reasons and the path to enable it, in
   [security.md](security.md#row-level-security-evaluated-not-enabled-yet).
+
+Step 7 (platform control) verification:
+
+- Design in [architecture.md](architecture.md#12-platform-administration) and
+  [security.md](security.md#two-factor-sign-in).
+- Two-factor sign-in: TOTP written on `node:crypto` (no dependency), checked against the RFC 6238
+  test vectors; secrets encrypted with AES-256-GCM (`MFA_ENCRYPTION_KEY`, required in
+  production); 10 hashed single-use recovery codes; a pending session between password and
+  code (5 minutes, 5 attempts); each code accepted once. The QR code is drawn as SVG with
+  `qrcode-generator` (pinned).
+- Replay: a sabotage check (removing the "step already used" condition) was first _not_ caught
+  by the tests, because two sequential requests cannot race. A deterministic test now feeds the
+  check a stale copy of the user, as a concurrent request would see it, and fails when the
+  condition is removed.
+- Admin area: `403 MFA_REQUIRED` without two-factor on and verified in the session; the web app
+  explains and links to the profile. `npm run admin -- reset-mfa <email>` resets an admin's
+  two-factor from the server (tried on the e2e database: reset, audited, idempotent, unknown
+  emails refused).
+- User management: search, details with memberships and last sign-in, disable or enable
+  (disabling ends sessions at once: the user's next request gets 401), sign out everywhere,
+  resend the confirmation email, reset two-factor. Admins cannot act on themselves or other
+  admins. The activity page lists every `admin.*` and `platform.*` entry across organizations.
+- Bug found by the e2e test: on the list pages, a click on a result while the search box was
+  still settling was undone when the debounced search replaced the URL. The six list pages now
+  skip that update while a navigation is pending.
+- Tests: backend 302 (new: `mfa.test.js`, `totp.test.js`, user management and activity in
+  `admin.test.js`; the generated authorization test covers the 15 admin routes); frontend 149;
+  Playwright 18 (the admin journey now turns on two-factor through the UI, signs in again with
+  a code, and manages a user). OpenAPI regenerated: 116 operations.
+- Visual check at 1366 px and 390 px: the setup key wrapped inside a group of four; it now
+  breaks only between groups.

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { paginationSchema, uuidSchema } from '../../utils/schemas.js';
 import { createAdminService } from './admin.service.js';
+import { createAdminUserService } from './users.service.js';
 
 // /admin: platform administration for Vendora staff (platformRole SUPER_ADMIN). These routes
 // work across organizations, so they never use tenantDb; see admin.service.js.
@@ -28,9 +29,22 @@ const subscriptionBody = z.object({
 });
 // Reading an organization's audit log requires saying why (it is recorded).
 const auditQuery = paginationSchema.extend({ reason });
+const userParams = z.object({ userId: uuidSchema });
+const userListQuery = paginationSchema.extend({
+  search: z.string().trim().max(100).optional(),
+  status: z.enum(['ACTIVE', 'DISABLED']).optional(),
+});
+const activityQuery = paginationSchema.extend({
+  action: z
+    .string()
+    .trim()
+    .regex(/^(admin|platform)\.[a-z_]+$/, 'Choose an admin action')
+    .optional(),
+});
 
 export function adminRoutes(deps) {
   const admin = createAdminService(deps);
+  const users = createAdminUserService(deps);
   return {
     basePath: '/admin',
     routes: [
@@ -91,6 +105,71 @@ export function adminRoutes(deps) {
         validate: { params, query: auditQuery },
         handler: async (req, res) =>
           res.json(await admin.auditLogs(req, req.valid.params.organizationId, req.valid.query)),
+      },
+      {
+        method: 'get',
+        path: '/users',
+        access: ADMIN,
+        validate: { query: userListQuery },
+        handler: async (req, res) => res.json(await users.list(req.valid.query)),
+      },
+      {
+        method: 'get',
+        path: '/users/:userId',
+        access: ADMIN,
+        validate: { params: userParams },
+        handler: (req) => users.get(req.valid.params.userId),
+      },
+      {
+        method: 'post',
+        path: '/users/:userId/disable',
+        access: ADMIN,
+        validate: { params: userParams, body: z.object({ reason }) },
+        handler: (req) =>
+          users.setStatus(req, req.valid.params.userId, {
+            status: 'DISABLED',
+            reason: req.valid.body.reason,
+          }),
+      },
+      {
+        method: 'post',
+        path: '/users/:userId/enable',
+        access: ADMIN,
+        validate: { params: userParams, body: z.object({ reason }) },
+        handler: (req) =>
+          users.setStatus(req, req.valid.params.userId, {
+            status: 'ACTIVE',
+            reason: req.valid.body.reason,
+          }),
+      },
+      {
+        method: 'post',
+        path: '/users/:userId/sign-out',
+        access: ADMIN,
+        validate: { params: userParams, body: z.object({ reason }) },
+        handler: (req) => users.signOutEverywhere(req, req.valid.params.userId, req.valid.body),
+      },
+      {
+        method: 'post',
+        path: '/users/:userId/verification-email',
+        access: ADMIN,
+        validate: { params: userParams },
+        status: 202,
+        handler: (req) => users.resendVerification(req, req.valid.params.userId),
+      },
+      {
+        method: 'post',
+        path: '/users/:userId/mfa/reset',
+        access: ADMIN,
+        validate: { params: userParams, body: z.object({ reason }) },
+        handler: (req) => users.resetMfa(req, req.valid.params.userId, req.valid.body),
+      },
+      {
+        method: 'get',
+        path: '/activity',
+        access: ADMIN,
+        validate: { query: activityQuery },
+        handler: async (req, res) => res.json(await users.activity(req.valid.query)),
       },
     ],
   };

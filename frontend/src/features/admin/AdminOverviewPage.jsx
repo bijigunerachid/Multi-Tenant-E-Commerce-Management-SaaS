@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigation, useSearchParams } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { BuildingOffice2Icon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {
@@ -79,7 +79,11 @@ export function AdminOverviewPage() {
   };
   const [searchInput, setSearchInput] = useState(filters.search);
   const search = useDebouncedValue(searchInput);
+  // A click on a result while the search is settling wins: its navigation must not be
+  // replaced by the search box updating the URL.
+  const navigation = useNavigation();
   useEffect(() => {
+    if (navigation.state !== 'idle') return;
     if (search !== filters.search) update({ search, page: null });
     // Only the debounced input drives the URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps

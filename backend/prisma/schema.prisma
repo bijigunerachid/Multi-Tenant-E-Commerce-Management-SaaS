@@ -149,6 +149,13 @@ model User {
   status                   UserStatus   @default(ACTIVE)
   /// Restored as the active organization at login. Membership is re-checked on every request.
   lastActiveOrganizationId String?      @map("last_active_organization_id") @db.Uuid
+  /// Two-factor sign-in (TOTP). Secrets are encrypted with MFA_ENCRYPTION_KEY (utils/secretBox.js).
+  mfaSecret                String?      @map("mfa_secret") @db.VarChar(255)
+  /// A secret shown during setup, kept until the first code confirms it.
+  mfaPendingSecret         String?      @map("mfa_pending_secret") @db.VarChar(255)
+  mfaEnabledAt             DateTime?    @map("mfa_enabled_at") @db.Timestamptz(3)
+  /// The 30-second step of the last code accepted: a code can never be used twice.
+  mfaLastStep              Int?         @map("mfa_last_step")
   createdAt                DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -157,6 +164,7 @@ model User {
   invitedMemberships     OrganizationMembership[] @relation("MembershipInvitedBy")
   authTokens             AuthToken[]
   sentInvitations        Invitation[]             @relation("InvitationInvitedBy")
+  mfaRecoveryCodes       MfaRecoveryCode[]
 
   @@map("users")
 }
@@ -818,4 +826,18 @@ model BillingInvoice {
   @@unique([provider, providerInvoiceId])
   @@index([organizationId, issuedAt(sort: Desc)])
   @@map("billing_invoices")
+}
+
+/// Single-use codes for signing in without the authenticator app. Only their hashes are kept.
+model MfaRecoveryCode {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.Char(64)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_recovery_codes")
 }

@@ -8,6 +8,8 @@ import { permissionsFor } from './permissions.js';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
+/** How long the authenticator code may take after the password step. */
+export const MFA_PENDING_MS = 5 * 60 * 1000;
 
 export function publicUser(user) {
   return {
@@ -16,6 +18,7 @@ export function publicUser(user) {
     name: user.name,
     emailVerified: Boolean(user.emailVerifiedAt),
     platformRole: user.platformRole,
+    mfaEnabled: Boolean(user.mfaEnabledAt),
   };
 }
 
@@ -124,15 +127,18 @@ async function consumeToken(db, token, purpose) {
   return record.userId;
 }
 
+/** Issues a new verification link (the previous one stops working) and queues the email. */
+export async function sendVerificationEmail({ prisma, emails, env }, user) {
+  const token = await issueToken(prisma, user.id, 'EMAIL_VERIFY', EMAIL_VERIFY_TTL_MS);
+  await emails.enqueue({
+    kind: 'auth.verify_email',
+    to: user.email,
+    message: verifyEmailMessage({ appUrl: env.APP_URL, name: user.name, token }),
+  });
+}
+
 export function createAuthService({ prisma, sessionStore, emails, env }) {
-  async function sendVerificationEmail(user) {
-    const token = await issueToken(prisma, user.id, 'EMAIL_VERIFY', EMAIL_VERIFY_TTL_MS);
-    await emails.enqueue({
-      kind: 'auth.verify_email',
-      to: user.email,
-      message: verifyEmailMessage({ appUrl: env.APP_URL, name: user.name, token }),
-    });
-  }
+  const sendVerification = (user) => sendVerificationEmail({ prisma, emails, env }, user);
 
   return {
     async register(req, { name, email, password }) {
@@ -154,7 +160,7 @@ export function createAuthService({ prisma, sessionStore, emails, env }) {
         entityType: 'User',
         entityId: user.id,
       });
-      await sendVerificationEmail(user);
+      await sendVerification(user);
       await req.startSession({ userId: user.id, activeOrganizationId: null });
       return describeSession(prisma, req);
     },
@@ -182,6 +188,18 @@ export function createAuthService({ prisma, sessionStore, emails, env }) {
         user.id,
         user.lastActiveOrganizationId,
       );
+      if (user.mfaEnabledAt) {
+        // The password was right; the authenticator code comes next (POST /auth/mfa/verify).
+        // Until then this session opens nothing (requireAuth refuses it).
+        const pending = await req.startSession({
+          userId: user.id,
+          activeOrganizationId,
+          mfaPending: true,
+          mfaPendingUntil: Date.now() + MFA_PENDING_MS,
+          mfaFailures: 0,
+        });
+        return { mfaRequired: true, csrfToken: pending.csrfToken };
+      }
       await req.startSession({ userId: user.id, activeOrganizationId });
       await recordAudit(prisma, req, {
         action: 'auth.login',
@@ -256,7 +274,7 @@ export function createAuthService({ prisma, sessionStore, emails, env }) {
       if (req.user.emailVerifiedAt) {
         throw conflict('EMAIL_ALREADY_VERIFIED', 'Your email address is already confirmed');
       }
-      await sendVerificationEmail(req.user);
+      await sendVerification(req.user);
     },
 
     async requestPasswordReset(req, { email }) {

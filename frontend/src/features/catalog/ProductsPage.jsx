@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { MagnifyingGlassIcon, PhotoIcon, PlusIcon } from '@heroicons/react/20/solid';
 import { CubeIcon } from '@heroicons/react/24/outline';
@@ -65,8 +65,12 @@ export function ProductsPage() {
   const [filters, update] = useProductFilters();
   const [searchInput, setSearchInput] = useState(filters.search);
   const debouncedSearch = useDebouncedValue(searchInput);
+  // A click on a result while the search is settling wins: its navigation must not be
+  // replaced by the search box updating the URL.
+  const navigation = useNavigation();
 
   useEffect(() => {
+    if (navigation.state !== 'idle') return;
     if (debouncedSearch !== filters.search) update({ search: debouncedSearch });
     // Only react to the debounced text; `update` and `filters` change on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps

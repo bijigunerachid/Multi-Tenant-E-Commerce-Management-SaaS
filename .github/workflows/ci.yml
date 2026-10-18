@@ -157,6 +157,7 @@ jobs:
             -e "s#^REDIS_PASSWORD=.*#REDIS_PASSWORD=$(openssl rand -hex 24)#" \
             -e 's#^SMTP_URL=.*#SMTP_URL=smtp://localhost:2525#' \
             .env.production
+          sed -i "s#^MFA_ENCRYPTION_KEY=.*#MFA_ENCRYPTION_KEY=$(openssl rand -base64 32)#" .env.production
           printf 'HTTP_PORT=8080\nHTTPS_PORT=8443\n' >> .env.production
       - name: The production Compose file is valid
         run: docker compose -f docker-compose.prod.yml --env-file .env.production config --quiet

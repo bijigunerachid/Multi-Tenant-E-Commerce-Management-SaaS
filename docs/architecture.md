@@ -393,11 +393,26 @@ whose `platformRole` is `SUPER_ADMIN`, re-read on every request, and they have n
     provider subscription), or end access (`CANCELED`), with a reason. Subscriptions paid
     through Stripe are refused (`409 BILLED_BY_PROVIDER`): they change in Stripe, and the
     webhook brings Vendora along, so the two never disagree;
-  - read the organization's audit log, after giving a reason.
+  - read the organization's audit log, after giving a reason;
+  - manage user accounts across organizations (`/admin/users`): search by name or email,
+    see memberships and last sign-in, disable or re-enable an account (disabling ends all its
+    sessions), sign it out everywhere, resend the confirmation email, or reset its two-factor
+    sign-in when the phone is lost. Disable, enable, sign-out and reset need a reason. Admins
+    cannot act on themselves or on another platform admin (`CANNOT_CHANGE_SELF`,
+    `PLATFORM_ADMIN`): admin accounts are managed only from the server;
+  - read the platform activity log (`/admin/activity`): every `admin.*` and `platform.*`
+    entry across organizations, with actor, target and reason, filterable by action.
+- **Two-factor sign-in is required.** Every admin route also needs two-factor sign-in turned
+  on for the account and verified in the current session, otherwise `403 MFA_REQUIRED`; the
+  web app then sends the admin to their profile to set it up. See
+  [security.md](security.md#two-factor-sign-in).
 - **Accountability.** Every admin action is written to the organization's own audit log
   (`admin.organization_suspended`, `admin.organization_reactivated`,
   `admin.subscription_changed` with before and after, `admin.audit_viewed`), with the admin as
-  actor and the reason, so the owner sees what support did and why.
+  actor and the reason, so the owner sees what support did and why. Actions on user accounts
+  belong to no organization and are logged platform-wide (`admin.user_disabled`,
+  `admin.user_enabled`, `admin.user_signed_out`, `admin.verification_resent`,
+  `admin.user_mfa_reset`), where the activity log shows them.
 - **No impersonation.** Admins never act inside an organization as one of its members; the
   admin area has its own layout, outside any organization.
 - **Tests.** A generated test sends every admin route the requests of every organization role

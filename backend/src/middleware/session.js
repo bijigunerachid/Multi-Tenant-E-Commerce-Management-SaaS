@@ -21,9 +21,9 @@ export function sessionMiddleware({ sessionStore, cookieName, cookieOptions }) {
       }
     }
 
-    req.startSession = async ({ userId, activeOrganizationId }) => {
+    req.startSession = async (fields) => {
       if (req.sessionId) await sessionStore.destroy(req.sessionId, req.session?.userId);
-      const { id, session } = await sessionStore.create({ userId, activeOrganizationId });
+      const { id, session } = await sessionStore.create(fields);
       req.sessionId = id;
       req.session = session;
       res.cookie(cookieName, id, cookieOptions);
