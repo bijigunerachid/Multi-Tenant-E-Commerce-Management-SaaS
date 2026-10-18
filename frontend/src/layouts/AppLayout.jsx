@@ -224,6 +224,16 @@ function UserMenu({ user }) {
           >
             Notifications
           </Link>
+          {user.platformRole === 'SUPER_ADMIN' && (
+            <Link
+              role="menuitem"
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              Platform admin
+            </Link>
+          )}
           <button
             role="menuitem"
             type="button"

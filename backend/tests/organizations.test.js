@@ -166,6 +166,28 @@ describe('organization switching', () => {
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('ORGANIZATION_SUSPENDED');
   });
+
+  test('a suspended organization stays selected, and members get back in when it is reactivated', async () => {
+    const { organization, owner } = await createOrganization(ctx.prisma);
+    const client = await signIn(ctx.app, owner);
+    const suspend = (status) =>
+      ctx.prisma.organization.update({
+        where: { id: organization.id },
+        data: { status, suspendedAt: status === 'SUSPENDED' ? new Date() : null },
+      });
+
+    await suspend('SUSPENDED');
+    // The app is told why, rather than being sent to create a new organization.
+    const me = await client.get('/auth/me');
+    expect(me.body.data.activeOrganization).toMatchObject({
+      id: organization.id,
+      status: 'SUSPENDED',
+    });
+    expect((await client.get('/organizations/current')).status).toBe(403);
+
+    await suspend('ACTIVE');
+    expect((await client.get('/organizations/current')).status).toBe(200);
+  });
 });
 
 describe('organization settings', () => {

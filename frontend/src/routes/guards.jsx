@@ -6,6 +6,7 @@ import { Alert, EmptyState } from '../components/ui/layout.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { getApiError } from '../lib/apiClient.js';
 import { safeNextPath } from '../features/auth/schemas.js';
+import { SuspendedOrganizationPage } from '../features/organizations/SuspendedOrganizationPage.jsx';
 
 // These guards decide what to render. They are a convenience, not security: the API checks
 // authentication, tenant membership and permissions on every request regardless.
@@ -46,6 +47,10 @@ export function RequireAuth() {
 export function RequireOrganization() {
   const { data } = useSession();
   if (!data.activeOrganization) return <Navigate to="/onboarding" replace />;
+  // Suspended by Vendora: explain instead of showing pages whose every request is refused.
+  if (data.activeOrganization.status === 'SUSPENDED') {
+    return <SuspendedOrganizationPage session={data} />;
+  }
   return <Outlet />;
 }
 

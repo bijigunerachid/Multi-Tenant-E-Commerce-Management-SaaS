@@ -4,6 +4,7 @@ import {
   authorize,
   requireAuth,
   requireFeature,
+  requirePlatformRole,
   requireTenant,
   requireUsableSubscription,
 } from '../middleware/auth.js';
@@ -14,7 +15,8 @@ import { PERMISSIONS } from '../modules/auth/permissions.js';
  *
  *   {
  *     method: 'post', path: '/:memberId/deactivate',
- *     access: 'public' | 'authenticated' | { permission: 'member:manage' },
+ *     access: 'public' | 'authenticated' | { permission: 'member:manage' }
+ *             | { platform: 'SUPER_ADMIN' },  // Vendora staff, across organizations
  *     rateLimit: [middleware...],      // optional, runs first
  *     whenInactive: 'allow',           // optional: stays writable when the subscription ended
  *     feature: 'csvExport',            // optional: refused (402) on plans without it
@@ -47,6 +49,9 @@ export function mountRoutes({ basePath, routes, deps, routeTable }) {
       chain.push(authenticated, tenant, authorize(def.access.permission));
       if (def.whenInactive !== 'allow') chain.push(requireUsableSubscription);
       if (def.feature) chain.push(requireFeature(def.feature));
+    } else if (def.access?.platform === 'SUPER_ADMIN') {
+      // No tenant: platform routes act across organizations and never use tenantDb.
+      chain.push(authenticated, requirePlatformRole('SUPER_ADMIN'));
     } else {
       throw new Error(
         `Route ${def.method.toUpperCase()} ${basePath}${def.path} has no valid access rule`,

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 
@@ -75,4 +76,12 @@ export async function apiFromPage(page, method, path, body) {
     },
     { method, path, body },
   );
+}
+
+/** Grants the platform admin role from the server's command line, as in production. */
+export function grantPlatformAdmin(email) {
+  return execFileSync(process.execPath, ['backend/src/scripts/platformAdmin.js', 'grant', email], {
+    env: { ...process.env, DATABASE_URL: process.env.E2E_DATABASE_URL },
+    encoding: 'utf8',
+  });
 }

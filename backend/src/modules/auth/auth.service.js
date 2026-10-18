@@ -53,10 +53,10 @@ export async function describeSession(prisma, req) {
     orderBy: { createdAt: 'asc' },
   });
 
-  let active = memberships.find(
-    (m) =>
-      m.organizationId === req.session.activeOrganizationId && m.organization.status === 'ACTIVE',
-  );
+  // A suspended organization stays the active one (with its status), so its members are told
+  // what happened, and get straight back in when it is reactivated. Every request inside it is
+  // still refused by requireTenant while it is suspended.
+  const active = memberships.find((m) => m.organizationId === req.session.activeOrganizationId);
   if (!active && req.session.activeOrganizationId) {
     await req.updateSession({ activeOrganizationId: null });
   }
@@ -75,6 +75,7 @@ export async function describeSession(prisma, req) {
           id: active.organization.id,
           name: active.organization.name,
           slug: active.organization.slug,
+          status: active.organization.status,
           role: active.role,
           defaultCurrency: active.organization.defaultCurrency,
           membershipId: active.id,

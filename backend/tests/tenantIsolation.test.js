@@ -141,7 +141,8 @@ test('every route parameter has a cross-tenant fixture (new routes must extend t
 test("every route with an ID in its path answers 404 for another organization's ID and changes nothing", async () => {
   const before = await snapshotB();
   const routes = ctx.app.locals.routeTable.filter(
-    (r) => r.access !== 'public' && paramNames(r.path).length,
+    // Platform admin routes work across organizations by design (tested in admin.test.js).
+    (r) => r.access !== 'public' && !r.access.platform && paramNames(r.path).length,
   );
   expect(routes.length).toBeGreaterThan(0);
 
