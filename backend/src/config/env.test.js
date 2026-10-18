@@ -16,7 +16,12 @@ describe('loadEnv', () => {
   });
 
   test('rate limits cannot be scaled up in production', () => {
-    const production = { ...valid, NODE_ENV: 'production', APP_URL: 'https://app.example.com' };
+    const production = {
+      ...valid,
+      NODE_ENV: 'production',
+      APP_URL: 'https://app.example.com',
+      SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+    };
     expect(() => loadEnv({ ...production, RATE_LIMIT_SCALE: '20' })).toThrow(/RATE_LIMIT_SCALE/);
     expect(loadEnv(production).RATE_LIMIT_SCALE).toBe(1);
     expect(loadEnv({ ...valid, RATE_LIMIT_SCALE: '20' }).RATE_LIMIT_SCALE).toBe(20);
@@ -26,6 +31,28 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, DATABASE_URL: undefined })).toThrow(/DATABASE_URL/);
     expect(() => loadEnv({ ...valid, REDIS_URL: 'http://localhost' })).toThrow(/REDIS_URL/);
     expect(() => loadEnv({ ...valid, CORS_ORIGINS: 'not a url' })).toThrow(/CORS_ORIGINS/);
+  });
+
+  test('production refuses settings that only make sense in development', () => {
+    const production = {
+      ...valid,
+      NODE_ENV: 'production',
+      APP_URL: 'https://app.example.com',
+      SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+    };
+    expect(loadEnv(production).NODE_ENV).toBe('production');
+    expect(() => loadEnv({ ...production, APP_URL: 'http://app.example.com' })).toThrow(
+      /APP_URL: must use https/,
+    );
+    expect(() => loadEnv({ ...production, APP_URL: 'https://other.example.com' })).toThrow(
+      /CORS_ORIGINS: must include the origin of APP_URL/,
+    );
+    expect(() => loadEnv({ ...production, MAIL_TRANSPORT: 'memory' })).toThrow(/MAIL_TRANSPORT/);
+    expect(() => loadEnv({ ...production, SMTP_URL: undefined })).toThrow(/SMTP_URL/);
+    // All problems are listed at once, so a deploy does not fail one setting at a time.
+    expect(() => loadEnv({ ...production, MAIL_TRANSPORT: 'memory', SMTP_URL: undefined })).toThrow(
+      /MAIL_TRANSPORT[\s\S]*SMTP_URL/,
+    );
   });
 
   test('scripts check only the settings they use', () => {

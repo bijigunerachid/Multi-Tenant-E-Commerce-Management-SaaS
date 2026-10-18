@@ -17,12 +17,12 @@ export default [
     },
   },
   {
-    files: ['backend/**/*.js', 'e2e/**/*.js', '*.js'],
+    files: ['backend/**/*.js', 'e2e/**/*.js', 'smoke/**/*.js', '*.js'],
     languageOptions: { globals: globals.node },
   },
   {
     // Code passed to page.evaluate() runs in the browser.
-    files: ['e2e/**/*.js'],
+    files: ['e2e/**/*.js', 'smoke/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {

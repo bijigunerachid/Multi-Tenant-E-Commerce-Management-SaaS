@@ -18,6 +18,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Fonts stay separate files: the production Content-Security-Policy allows fonts from this
+    // origin only (font-src 'self'), so an inlined data: font would be blocked.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
     rollupOptions: {
       output: {
         // Third-party libraries change far less often than application code; keeping them in

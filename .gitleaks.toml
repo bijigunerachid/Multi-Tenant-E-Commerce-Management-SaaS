@@ -1,0 +1,10 @@
+# Secret scanning (CI job "secrets" and `docker run zricethezav/gitleaks`). The default rules
+# apply; the only exceptions are fake values written into tests on purpose.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake Stripe keys used to test key validation (backend/src/config/env.test.js)"
+paths = ['''^backend/src/config/env\.test\.js$''']
+regexTarget = "match"
+regexes = ['''(sk|rk|pk)_(test|live)_abc123''']

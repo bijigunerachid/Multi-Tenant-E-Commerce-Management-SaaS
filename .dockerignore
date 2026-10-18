@@ -1,0 +1,18 @@
+# Only what the images need is sent to Docker. Secrets and local state never are.
+**/node_modules
+**/.env
+**/.env.*
+.git
+.github
+**/dist
+**/coverage
+backend/uploads
+backend/tests
+e2e
+test-results
+playwright-report
+blob-report
+docs
+*.log
+**/*.test.js
+**/*.test.jsx

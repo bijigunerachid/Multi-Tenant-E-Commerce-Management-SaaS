@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "test": "npm run test -w backend && npm run test -w frontend",
     "build": "npm run build -w frontend",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke": "playwright test --config smoke/playwright.config.js"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

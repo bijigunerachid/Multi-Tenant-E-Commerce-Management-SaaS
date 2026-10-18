@@ -4,3 +4,4 @@ coverage
 package-lock.json
 backend/prisma/migrations
 playwright-report
+docs/openapi.json

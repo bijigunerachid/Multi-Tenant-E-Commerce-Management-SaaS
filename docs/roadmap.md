@@ -362,8 +362,8 @@ Steps, one branch each:
    the Web Interface Guidelines. ✅ See [design.md](design.md).
 5. Public website (`feature/public-site`): the homepage at `/` for visitors and a pricing page,
    built from the live plans. ✅
-6. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
-   RLS evaluation, accessibility pass, deployment and smoke tests.
+6. Production readiness, without deploying yet (`feature/production-ready`). ✅ Deployment
+   itself waits for a server and a domain: [deployment.md](deployment.md) is the runbook.
 
 Step 1 (plans and limits) verification:
 
@@ -518,3 +518,37 @@ Step 5 (public website) verification:
   width. 18 Playwright tests.
 - A visual review at 1366 px and 390 px found the FAQ centred while everything else is
   left-aligned; it now follows the page's left edge.
+
+Step 6 (production readiness) verification:
+
+- Images: `backend/Dockerfile` (API, worker and migrations; Debian slim, non-root, no install
+  scripts, health check) and `frontend/Dockerfile` (the built web app in Caddy, non-root, able to
+  bind 80/443). Base images pinned: `node:22.23.3-bookworm-slim`, `caddy:2.10.2-alpine`.
+- `docker-compose.prod.yml`: web, migrate (runs once), api, worker (heartbeat health check),
+  postgres, redis, on a private network with only 80/443 published. Settings in
+  `.env.production` (example committed, real file ignored).
+- The whole stack was run locally on https://localhost:8443: all services healthy, migrations
+  applied, readiness, security headers, the app's routes, asset caching and compression, and
+  the public plans checked with curl; then a real browser signed up, confirmed the email sent by
+  the worker through SMTP, created an organization and a product, and got a `Secure`,
+  `HttpOnly`, `SameSite=Lax` session cookie.
+- Bugs found by running it: Caddy refused to start with an empty `ACME_EMAIL` (the setting was
+  removed: the certificate authority does not need it), and the strict CSP blocked a small font
+  that Vite had inlined as a `data:` URI (fonts are no longer inlined).
+- Production settings checks: plain-http `APP_URL`, `APP_URL` not in `CORS_ORIGINS`, in-memory
+  mail and the default local SMTP are refused, all listed at once (tested).
+- `npm run smoke`: read-only checks for any deployed URL (readiness, headers, plans, pages
+  without browser errors). Passed against the local production stack.
+- OpenAPI 3.1: `docs/openapi.json`, generated from the live route table and Zod schemas (102
+  operations); a test fails if it is out of date or misses a route.
+- `npm run db:seed -w backend`: an idempotent demo shop (2 stores, 11 variants, 3 customers,
+  7 orders across every status, staff in 3 roles), created through the real API; refuses
+  production. Checked: the second run changes nothing, and reserved stock matches the open
+  reservations.
+- Backups: `pg_dump` from the running stack restored into a scratch database with identical
+  counts.
+- CI: new jobs `secrets` (gitleaks over the whole history; the only allowed findings are fake
+  test keys) and `production-stack` (builds the images, starts the stack, waits for readiness,
+  runs the smoke tests).
+- Row-Level Security: evaluated and deferred, with the reasons and the path to enable it, in
+  [security.md](security.md#row-level-security-evaluated-not-enabled-yet).

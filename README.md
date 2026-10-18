@@ -6,7 +6,8 @@ with strict tenant isolation and role-based access.
 
 > **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits, read-only mode and
 > Stripe payments (Checkout, Customer Portal, webhooks, invoices), platform administration and
-> a public website (homepage and pricing) work; production readiness is next. (CSV exports as background jobs were deferred from Phase 5.)
+> a public website (homepage and pricing) work. It is ready to deploy: production images, a
+> production Compose stack, smoke tests and a runbook ([docs/deployment.md](docs/deployment.md)). (CSV exports as background jobs were deferred from Phase 5.)
 > Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
 > catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
 > end to end. The dashboard shows revenue, orders and stock alerts, and
@@ -21,6 +22,8 @@ with strict tenant isolation and role-based access.
 - [Data model](docs/data-model.md): entities, relationships, constraints and invariants
 - [Security](docs/security.md): risk register and controls
 - [Design](docs/design.md): the "Stockroom" interface: tokens, type, rules and the Web Interface Guidelines review
+- [Deployment](docs/deployment.md): production setup, updates, backups, monitoring
+- [API reference](docs/openapi.json): OpenAPI 3.1, generated from the routes
 - [Roadmap](docs/roadmap.md): phases and acceptance criteria
 
 ## Stack
@@ -80,6 +83,15 @@ npm run stripe:listen -w backend        # forwards webhooks; copy the whsec_ sec
 
 Pay with the test card 4242 4242 4242 4242, any future date and any CVC. Keep
 `stripe:listen` running while you test: plans change only when its webhooks arrive.
+
+### Demo data
+
+```powershell
+npm run db:seed -w backend    # a demo shop: 2 stores, products, stock, customers and orders
+```
+
+It prints the demo accounts and their password (set `SEED_PASSWORD` to choose it). Running it
+again changes nothing; it never runs in production.
 
 ### Platform administration
 
