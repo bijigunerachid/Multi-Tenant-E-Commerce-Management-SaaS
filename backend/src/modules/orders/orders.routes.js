@@ -107,6 +107,7 @@ export function orderRoutes(deps) {
         method: 'get',
         path: '/export',
         access: { permission: 'order:read' },
+        feature: 'csvExport',
         afterAuth: [exportLimit],
         validate: { query: filters },
         handler: (req, res) => orders.exportCsv(req, res, req.valid.query),

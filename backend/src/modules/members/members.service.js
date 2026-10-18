@@ -5,6 +5,8 @@ import { recordAudit } from '../../utils/audit.js';
 import { invitationMessage } from '../../services/emails.js';
 import { ROLE_LABELS } from '../auth/permissions.js';
 import { describeSession } from '../auth/auth.service.js';
+import { assertWithinLimit } from '../billing/limits.js';
+import { subscriptionContext, subscriptionInactive } from '../billing/subscription.js';
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -93,6 +95,7 @@ export function createMemberService({ prisma, emails, env }) {
       return req.db.$transaction(async (tx) => {
         const member = await loadManageableMember(tx, req, membershipId);
         if (member.status === status) return presentMember(member);
+        if (status === 'ACTIVE') await assertWithinLimit(tx, req.ctx, 'members');
         const updated = await tx.organizationMembership.update({
           where: { id: member.id },
           data: { status },
@@ -140,6 +143,7 @@ export function createMemberService({ prisma, emails, env }) {
             where: { pendingEmail: email, expiresAt: { lt: new Date() } },
             data: { pendingEmail: null, revokedAt: new Date() },
           });
+          await assertWithinLimit(tx, req.ctx, 'members');
           const created = await tx.invitation.create({
             data: {
               email,
@@ -236,7 +240,9 @@ export function createMemberService({ prisma, emails, env }) {
     async acceptInvitation(req, { token, name, password }) {
       const invitation = await prisma.invitation.findUnique({
         where: { tokenHash: sha256(token) },
-        include: { organization: true },
+        include: {
+          organization: { include: { subscription: { include: { plan: true } } } },
+        },
       });
       if (
         !invitation ||
@@ -246,6 +252,9 @@ export function createMemberService({ prisma, emails, env }) {
       ) {
         throw invalidInvitation();
       }
+      // The invitation already holds a seat; joining is refused only if the subscription ended.
+      const subscription = subscriptionContext(invitation.organization.subscription);
+      if (!subscription.usable) throw subscriptionInactive(subscription.status);
 
       let sessionUser = null;
       if (req.session) {

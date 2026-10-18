@@ -3,6 +3,7 @@ import { pipeline } from 'node:stream/promises';
 import { AppError, conflict, notFound, isUniqueViolation } from '../../utils/errors.js';
 import { recordAudit } from '../../utils/audit.js';
 import { formatMoney } from '../../utils/money.js';
+import { assertWithinLimit } from '../billing/limits.js';
 import { detectImageType } from '../../utils/imageType.js';
 
 export const MAX_IMAGES_PER_PRODUCT = 10;
@@ -143,6 +144,8 @@ export function createProductService({ storage, logger }) {
     }
   }
 
+  // An archived product does not count against the plan; bringing one back does.
+  const leavesArchive = (from, to) => from === 'ARCHIVED' && to !== 'ARCHIVED';
   const statusFields = (status) => ({
     status,
     archivedAt: status === 'ARCHIVED' ? new Date() : null,
@@ -197,6 +200,7 @@ export function createProductService({ storage, logger }) {
 
       try {
         const productId = await req.db.$transaction(async (tx) => {
+          if (input.status !== 'ARCHIVED') await assertWithinLimit(tx, req.ctx, 'products');
           const product = await tx.product.create({
             data: {
               name: input.name,
@@ -259,6 +263,9 @@ export function createProductService({ storage, logger }) {
 
       try {
         await req.db.$transaction(async (tx) => {
+          if (leavesArchive(existing.status, input.status)) {
+            await assertWithinLimit(tx, req.ctx, 'products');
+          }
           await tx.product.update({
             where: { id: productId },
             data: {
@@ -338,6 +345,9 @@ export function createProductService({ storage, logger }) {
       if (!existing) throw notFound('Product not found');
       if (existing.status !== status) {
         await req.db.$transaction(async (tx) => {
+          if (leavesArchive(existing.status, status)) {
+            await assertWithinLimit(tx, req.ctx, 'products');
+          }
           await tx.product.update({ where: { id: productId }, data: statusFields(status) });
           await recordAudit(tx, req, {
             action: 'product.status_changed',

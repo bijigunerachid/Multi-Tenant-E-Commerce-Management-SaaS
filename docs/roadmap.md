@@ -350,3 +350,45 @@ idempotent seed, OpenAPI completeness, accessibility pass, README, deployment gu
 deployment, and smoke tests on the deployed instance.
 
 **Acceptance:** the Definition of Done in the master brief, item by item.
+
+Steps, one branch each:
+
+1. Plans, trial, usage limits, read-only mode, and store management (`feature/plans-and-limits`). ✅
+2. Payment provider abstraction, Stripe test-mode Checkout and Customer Portal, verified and
+   idempotent webhooks, billing history (`feature/stripe-billing`).
+3. Platform administration: organizations, suspension, plan changes, stats.
+4. Production readiness: Dockerfiles, `docker-compose.prod.yml`, seed, OpenAPI, monitoring,
+   RLS evaluation, accessibility pass, deployment and smoke tests.
+
+Step 1 (plans and limits) verification:
+
+- Design in [architecture.md](architecture.md#10-plans-trial-and-limits).
+- Store management was missing: stores were created only at onboarding and could not be
+  edited, so a store limit would have meant nothing. Owners can now add stores (with their
+  own currency and time zone), rename them, change their time zone, archive them and restore
+  them. A store's currency is fixed once it exists, because orders and stock values are
+  recorded in it. Archiving is refused for the last active store, and while the store has
+  open orders, drafts included.
+- Backend: 20 new tests:
+  - 14 billing tests: the trial at onboarding; the plan list; the hourly expiry job (once,
+    audited, other trials untouched); read-only mode for `EXPIRED` and `CANCELED`, generated
+    over every write route; reads still working; a trial read-only as soon as it ends;
+    `PAST_DUE` still usable; invitations refused into a read-only organization; product,
+    member and store limits, including archived rows, restoring, pending invitations, freed
+    seats and 6 concurrent requests for the last slot; CSV exports by plan.
+  - 6 store tests: creating, validation, the fixed currency, the archiving rules, history kept
+    while archived, and two archives at once.
+- The isolation suite has a `storeId` fixture. Backend: 241 tests.
+- Sabotage checks, each caught: no advisory lock; no expiry before the job runs; no read-only
+  guard; no feature gate; pending invitations not counted; restoring a product not limited;
+  archiving without the lock; accepting an invitation into a read-only organization.
+- Frontend: 11 tests (the Billing page with usage meters and plan comparison, owner-only
+  access, the read-only and trial banners by role, adding, editing and archiving stores, the
+  limit message with a link to the plans). 116 in total.
+- E2E: `billing.spec.js` checks the 14-day trial and the store meter, adds a store in euros,
+  then ends the trial in the database and checks the banner, a refused write (402) and a
+  read that still works. Billing is in the phone-width check. 15 Playwright tests.
+- A visual review at 1366 px and 390 px found "1 active stores" on the Starter plan and
+  "1000" next to "1,000"; both are fixed and tested.
+- Test and E2E resets keep the `subscription_plans` table, since its rows come from a
+  migration.

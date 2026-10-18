@@ -101,6 +101,7 @@ export function customerRoutes(deps) {
         method: 'get',
         path: '/export',
         access: { permission: 'customer:export' },
+        feature: 'csvExport',
         afterAuth: [exportLimit],
         validate: { query: listQuery.pick({ search: true, status: true }) },
         handler: (req, res) => customers.exportCsv(req, res, req.valid.query),

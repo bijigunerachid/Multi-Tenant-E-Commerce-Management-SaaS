@@ -26,7 +26,8 @@ export default async function globalSetup() {
       stdio: ['pipe', 'pipe', 'pipe'],
       input: `DO $$ DECLARE t text; BEGIN
         SELECT string_agg(format('%I.%I', schemaname, tablename), ', ') INTO t
-        FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations';
+        FROM pg_tables WHERE schemaname = 'public'
+          AND tablename NOT IN ('_prisma_migrations', 'subscription_plans');
         IF t IS NOT NULL THEN EXECUTE 'TRUNCATE ' || t || ' RESTART IDENTITY CASCADE'; END IF;
       END $$;`,
     },

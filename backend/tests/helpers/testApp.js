@@ -67,7 +67,9 @@ export async function resetState({ prisma, redis, mailer, emails }) {
   if (emails) await emails.drain();
   const tables = await prisma.$queryRaw`
     SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+    WHERE schemaname = 'public'
+      -- Plans are reference data created by a migration, not test data.
+      AND tablename NOT IN ('_prisma_migrations', 'subscription_plans')`;
   if (tables.length) {
     const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
     await prisma.$executeRawUnsafe(`TRUNCATE ${list} RESTART IDENTITY CASCADE`);

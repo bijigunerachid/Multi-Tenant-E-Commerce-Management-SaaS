@@ -19,8 +19,14 @@ export async function createUser(prisma, overrides = {}) {
   });
 }
 
-/** Creates an organization with its first store and an owner membership, directly in the DB. */
-export async function createOrganization(prisma, { owner, name } = {}) {
+/**
+ * Creates an organization with its first store, an owner membership and a subscription
+ * (a 14-day Growth trial unless `plan`/`status` say otherwise), directly in the DB.
+ */
+export async function createOrganization(
+  prisma,
+  { owner, name, plan = 'growth', status = 'TRIALING' } = {},
+) {
   const suffix = randomUUID().slice(0, 8);
   const ownerUser = owner ?? (await createUser(prisma));
   const organization = await prisma.organization.create({
@@ -38,7 +44,8 @@ export async function createOrganization(prisma, { owner, name } = {}) {
   const ownerMembership = await prisma.organizationMembership.create({
     data: { organizationId: organization.id, userId: ownerUser.id, role: 'OWNER' },
   });
-  return { organization, store, owner: ownerUser, ownerMembership };
+  const subscription = await setSubscription(prisma, organization.id, { plan, status });
+  return { organization, store, owner: ownerUser, ownerMembership, subscription };
 }
 
 export async function addMember(prisma, organizationId, role, { user, status = 'ACTIVE' } = {}) {
@@ -110,4 +117,19 @@ export async function lastEmailTo(ctx, to) {
   if (!message) return null;
   const token = message.text.match(/token=([A-Za-z0-9_-]+)/)?.[1] ?? null;
   return { ...message, token };
+}
+
+/** Puts an organization on a plan and status (an expired trial ended yesterday). */
+export async function setSubscription(prisma, organizationId, { plan = 'growth', status }) {
+  const { id: planId } = await prisma.subscriptionPlan.findUniqueOrThrow({ where: { code: plan } });
+  const day = 24 * 60 * 60 * 1000;
+  const trialEndsAt = ['TRIALING', 'EXPIRED'].includes(status)
+    ? new Date(Date.now() + (status === 'TRIALING' ? 14 : -1) * day)
+    : null;
+  const data = { planId, status, trialEndsAt };
+  return prisma.subscription.upsert({
+    where: { organizationId },
+    create: { organizationId, ...data },
+    update: data,
+  });
 }

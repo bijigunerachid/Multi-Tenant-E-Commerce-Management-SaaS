@@ -45,6 +45,7 @@ beforeEach(async () => {
     membershipId: B.members.ANALYST.membership.id,
     invitationId: invite.body.data.id,
     organizationId: B.organization.id,
+    storeId: B.store.id,
     categoryId: category.body.data.id,
     productId: product.body.data.id,
     imageId: image.body.data.id,
@@ -99,6 +100,7 @@ const BODIES = {
   },
   'POST /orders/:orderId/transitions': { action: 'confirm' },
   'POST /orders/:orderId/cancel': { reason: 'Hijacked' },
+  'PATCH /stores/:storeId': { name: 'Hijacked' },
 };
 
 const fill = (path, ids) => path.replace(/:(\w+)/g, (_, name) => ids[name]);

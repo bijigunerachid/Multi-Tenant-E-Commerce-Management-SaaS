@@ -71,6 +71,7 @@ export function notificationRoutes() {
         method: 'post',
         path: '/read-all',
         access: { permission: 'org:read' },
+        whenInactive: 'allow',
         handler: async (req) => {
           const { count } = await req.db.notification.updateMany({
             where: { ...mine(req), readAt: null },
@@ -83,6 +84,7 @@ export function notificationRoutes() {
         method: 'post',
         path: '/:notificationId/read',
         access: { permission: 'org:read' },
+        whenInactive: 'allow',
         validate: { params: idParams },
         handler: async (req) => {
           const where = { ...mine(req), id: req.valid.params.notificationId };
@@ -116,6 +118,7 @@ export function notificationRoutes() {
         method: 'put',
         path: '/preferences',
         access: { permission: 'org:read' },
+        whenInactive: 'allow',
         validate: { body: preferencesBody },
         handler: async (req) => {
           const visible = visibleTypes(req.ctx.permissions);

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { createPoller } from './poller.js';
 import { NOTIFICATION_TYPES } from '../modules/notifications/types.js';
 import { rolesWith } from '../modules/auth/permissions.js';
 
@@ -169,44 +170,26 @@ export function createNotificationDispatcher({ prisma, emails, logger, env }) {
  */
 export function createNotificationWorker({ prisma, emails, logger, env }) {
   const dispatcher = createNotificationDispatcher({ prisma, emails, logger, env });
-  let timer = null;
-  let running = null;
-  let stopped = false;
   let lastCleanup = 0;
-
-  async function tick() {
-    try {
+  const poller = createPoller({
+    name: 'notifications',
+    intervalMs: env.NOTIFICATION_POLL_MS,
+    logger,
+    run: async () => {
       await dispatcher.dispatchPending();
       if (Date.now() - lastCleanup >= DAY_MS) {
         lastCleanup = Date.now();
         await dispatcher.cleanup();
       }
-    } catch (err) {
-      logger.error({ err }, 'Notification delivery failed; retrying on the next poll');
-    }
-  }
-
-  function schedule(delay) {
-    if (stopped) return;
-    timer = setTimeout(async () => {
-      running = tick();
-      await running;
-      running = null;
-      schedule(env.NOTIFICATION_POLL_MS);
-    }, delay);
-  }
-
+    },
+  });
   return {
     dispatcher,
     /** Starts polling, with a first pass right away for events left from before a restart. */
     async start() {
-      schedule(0);
+      poller.start();
     },
     /** Stops polling and waits for the pass in progress to finish. */
-    async close() {
-      stopped = true;
-      clearTimeout(timer);
-      await running;
-    },
+    close: () => poller.close(),
   };
 }

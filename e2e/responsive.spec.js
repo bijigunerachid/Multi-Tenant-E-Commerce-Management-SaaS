@@ -73,6 +73,7 @@ test('no app page scrolls horizontally on a phone', async ({ page }) => {
     '/reports?report=stores',
     '/employees',
     '/settings/organization',
+    '/settings/billing',
     '/settings/emails',
     '/notifications',
     '/settings/profile',

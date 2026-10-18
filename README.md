@@ -4,10 +4,11 @@ A multi-tenant e-commerce management SaaS: independent businesses manage their s
 products, inventory, orders, employees, customers and analytics on one shared platform,
 with strict tenant isolation and role-based access.
 
-> **Status:** Phase 5 steps done (CSV exports as background jobs deferred); Phase 6 (billing
-> and production) is next. Accounts, organizations, team invitations, roles, tenant
-> isolation, the product catalog, inventory, customers and orders (draft to delivery, with stock
-> reservations) work end to end. The dashboard shows revenue, orders and stock alerts, and
+> **Status:** Phase 6 in progress: plans, a 14-day trial, usage limits and read-only mode
+> work; payments are next. (CSV exports as background jobs were deferred from Phase 5.)
+> Accounts, organizations, stores, team invitations, roles, tenant isolation, the product
+> catalog, inventory, customers and orders (draft to delivery, with stock reservations) work
+> end to end. The dashboard shows revenue, orders and stock alerts, and
 > sales, product and store reports export as CSV. Emails go through a queue with retries and a
 > delivery log. Members are notified of new orders and low stock in the app, and by email if
 > they choose. See

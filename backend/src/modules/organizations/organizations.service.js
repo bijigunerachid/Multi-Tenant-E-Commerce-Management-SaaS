@@ -5,6 +5,7 @@ import { recordAudit } from '../../utils/audit.js';
 import { slugify } from '../../utils/schemas.js';
 import { ownershipTransferMessage } from '../../services/emails.js';
 import { describeSession } from '../auth/auth.service.js';
+import { startTrial } from '../billing/subscription.js';
 
 const TRANSFER_TTL_MS = 72 * 60 * 60 * 1000;
 
@@ -52,7 +53,7 @@ export function createOrganizationService({ prisma, emails, env }) {
   return {
     /**
      * Onboarding: creates the organization, makes the caller its owner, creates the first
-     * store, and switches the caller's session into it. All or nothing.
+     * store, starts the trial, and switches the caller's session into it. All or nothing.
      */
     async create(req, input) {
       if (!req.user.emailVerifiedAt) {
@@ -88,6 +89,7 @@ export function createOrganizationService({ prisma, emails, env }) {
                 timezone: input.timezone,
               },
             });
+            const subscription = await startTrial(tx, organization.id);
             await tx.user.update({
               where: { id: req.user.id },
               data: { lastActiveOrganizationId: organization.id },
@@ -97,7 +99,12 @@ export function createOrganizationService({ prisma, emails, env }) {
               action: 'organization.created',
               entityType: 'Organization',
               entityId: organization.id,
-              metadata: { name: organization.name, slug, firstStoreId: store.id },
+              metadata: {
+                name: organization.name,
+                slug,
+                firstStoreId: store.id,
+                trialEndsAt: subscription.trialEndsAt,
+              },
             });
             return organization;
           });
